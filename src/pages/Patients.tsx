@@ -488,17 +488,17 @@ export default function Patients() {
 
             <CardContent>
               <Tabs defaultValue="personal" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
-                  <TabsTrigger value="personal" className="text-xs sm:text-sm">
+                <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide">
+                  <TabsTrigger value="personal" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
                     <span className="hidden sm:inline">Dados Pessoais</span>
                     <span className="sm:hidden">Pessoais</span>
                   </TabsTrigger>
-                  <TabsTrigger value="clinical" className="text-xs sm:text-sm">
+                  <TabsTrigger value="clinical" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
                     <span className="hidden sm:inline">Clínicas</span>
                     <span className="sm:hidden">Clínicos</span>
                   </TabsTrigger>
-                  <TabsTrigger value="operational" className="text-xs sm:text-sm">Operacional</TabsTrigger>
-                  <TabsTrigger value="sessions" className="text-xs sm:text-sm">
+                  <TabsTrigger value="operational" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">Operacional</TabsTrigger>
+                  <TabsTrigger value="sessions" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
                     <span className="hidden sm:inline">Controle de Presença</span>
                     <span className="sm:hidden">Presença</span>
                   </TabsTrigger>
