@@ -19,6 +19,45 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     // Marca como visto nesta sessão
     sessionStorage.setItem('hasSeenSplash', 'true');
 
+    // Efeito sonoro sutil usando Web Audio API
+    const playWelcomeSound = () => {
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        // Criar som agradável com osciladores
+        const playTone = (frequency: number, startTime: number, duration: number, volume: number) => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = frequency;
+          oscillator.type = 'sine';
+          
+          gainNode.gain.setValueAtTime(0, startTime);
+          gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.05);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+          
+          oscillator.start(startTime);
+          oscillator.stop(startTime + duration);
+        };
+        
+        // Acorde agradável (C maior) com volumes suaves
+        const now = audioContext.currentTime;
+        playTone(523.25, now, 0.8, 0.05); // C5
+        playTone(659.25, now + 0.1, 0.8, 0.04); // E5
+        playTone(783.99, now + 0.2, 1.0, 0.03); // G5
+        
+      } catch (error) {
+        // Silenciosamente falha se áudio não estiver disponível
+        console.log('Audio not available');
+      }
+    };
+
+    // Toca som após pequeno delay para sincronizar com animação
+    setTimeout(playWelcomeSound, 200);
+
     // Timer para iniciar saída automática após 3.5s
     const exitTimer = setTimeout(() => {
       setIsExiting(true);
@@ -77,8 +116,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           <img 
             src="/logo-clinica.png" 
             alt="Equipe Cheila Meinertz" 
-            className="w-[120px] h-auto md:w-[140px] drop-shadow-lg"
-            style={{ filter: 'drop-shadow(0 0 30px rgba(79, 127, 255, 0.3))' }}
+            className="w-[160px] h-auto md:w-[200px] drop-shadow-lg"
+            style={{ filter: 'drop-shadow(0 0 40px rgba(79, 127, 255, 0.4))' }}
           />
         </div>
         
