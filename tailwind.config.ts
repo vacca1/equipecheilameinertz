@@ -95,10 +95,45 @@ export default {
             height: "0",
           },
         },
+        "logoEntry": {
+          "from": { opacity: "0", transform: "scale(0.8)" },
+          "to": { opacity: "1", transform: "scale(1)" }
+        },
+        "logoPulse": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.05)" }
+        },
+        "fadeIn": {
+          "from": { opacity: "0" },
+          "to": { opacity: "1" }
+        },
+        "dotPulse": {
+          "0%, 100%": { opacity: "0.3", transform: "scale(0.8)" },
+          "50%": { opacity: "1", transform: "scale(1.2)" }
+        },
+        "slideUp": {
+          "to": { transform: "translateY(-100%)", opacity: "0" }
+        },
+        "float": {
+          "0%": { transform: "translateY(100vh) scale(0)", opacity: "0" },
+          "50%": { opacity: "0.5" },
+          "100%": { transform: "translateY(-100vh) scale(1)", opacity: "0" }
+        },
+        "progressBar": {
+          "from": { width: "0%" },
+          "to": { width: "100%" }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "logo-entry": "logoEntry 0.8s ease-out forwards",
+        "logo-pulse": "logoPulse 1s ease-in-out 1.5s",
+        "fade-in": "fadeIn 0.6s ease-out forwards",
+        "dot-pulse": "dotPulse 1.4s ease-in-out infinite",
+        "slide-up": "slideUp 0.7s cubic-bezier(0.4, 0.0, 0.2, 1) forwards",
+        "float": "float 10s infinite",
+        "progress-bar": "progressBar 3.5s linear forwards"
       },
       boxShadow: {
         'soft': '0 4px 20px rgba(79, 127, 255, 0.08)',
