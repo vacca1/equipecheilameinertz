@@ -21,8 +21,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container flex h-16 items-center justify-between px-4">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Equipe Cheila Meinertz" className="h-10 object-contain" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <img src={logo} alt="Equipe Cheila Meinertz" className="h-8 sm:h-10 object-contain" />
           </div>
 
           {/* Desktop Navigation */}
@@ -73,7 +73,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       </header>
 
       {/* Main Content */}
-      <main className="container py-6 px-4">
+      <main className="container py-4 sm:py-6 px-3 sm:px-4 max-w-7xl mx-auto">
         {children}
       </main>
     </div>

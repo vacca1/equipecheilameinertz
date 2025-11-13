@@ -355,14 +355,14 @@ const Agenda = () => {
           </Card>
 
           {/* Therapist Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {therapistsWithAll.map((therapist) => (
               <Button
                 key={therapist}
                 variant={selectedTherapist === therapist ? "default" : "outline"}
                 onClick={() => setSelectedTherapist(therapist)}
                 className={cn(
-                  "whitespace-nowrap shadow-soft",
+                  "whitespace-nowrap shadow-soft min-w-fit text-xs sm:text-sm px-3 sm:px-4",
                   selectedTherapist === therapist && "shadow-hover"
                 )}
               >
@@ -372,11 +372,11 @@ const Agenda = () => {
           </div>
 
           {/* Legend */}
-          <Card className="p-4 shadow-soft">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-status-confirmed border border-success/20" />
-                <Check className="w-3 h-3 text-success -ml-1" />
+          <Card className="p-3 sm:p-4 shadow-soft">
+            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-status-confirmed border border-success/20" />
+                <Check className="w-2 h-2 sm:w-3 sm:h-3 text-success -ml-0.5 sm:-ml-1" />
                 <span>Confirmado</span>
               </div>
               <div className="flex items-center gap-2">
@@ -522,9 +522,12 @@ const Agenda = () => {
             const appointments = filterAppointmentsByTherapist(allAppointments);
 
             return (
-              <Card key={day.toISOString()} className="p-4 shadow-soft">
-                <h3 className="text-lg font-semibold mb-4 pb-2 border-b border-border">
-                  {format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+              <Card key={day.toISOString()} className="p-3 sm:p-4 shadow-soft">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 pb-2 border-b border-border flex items-center justify-between">
+                  <span>{format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {appointments.length} agend.
+                  </Badge>
                 </h3>
                 <div className="space-y-2">
                   {timeSlots.slice(0, 25).map((time) => {
@@ -537,21 +540,21 @@ const Agenda = () => {
 
                     return (
                       <div key={time} className="flex gap-2">
-                        <div className="text-sm text-muted-foreground font-medium w-16 pt-2">
+                        <div className="text-xs sm:text-sm text-muted-foreground font-medium w-12 sm:w-16 pt-2">
                           {time}
                         </div>
                         {appointment ? (
                           <button
                             onClick={() => handleCellClick(day, time)}
                             className={cn(
-                              "flex-1 p-3 rounded-lg text-left transition-all border-2",
+                              "flex-1 p-2 sm:p-3 rounded-lg text-left transition-all border-2",
                               getStatusColor(appointment.status)
                             )}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <div className="font-semibold">{appointment.patientName}</div>
-                                <div className="text-sm opacity-80 mt-1">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-sm sm:text-base truncate">{appointment.patientName}</div>
+                                <div className="text-xs sm:text-sm opacity-80 mt-1">
                                   {appointment.therapist}
                                 </div>
                                 {appointment.room && (
@@ -560,7 +563,7 @@ const Agenda = () => {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex flex-col items-end gap-1">
+                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                 {getStatusIcon(appointment.status)}
                                 {appointment.hasInvoice && (
                                   <FileText className="w-3 h-3 text-primary" />
@@ -571,9 +574,9 @@ const Agenda = () => {
                         ) : (
                           <button
                             onClick={() => handleCellClick(day, time)}
-                            className="flex-1 rounded-lg bg-status-free hover:bg-muted transition-colors border border-border/50 p-3"
+                            className="flex-1 rounded-lg bg-status-free hover:bg-muted transition-colors border border-border/50 p-2 sm:p-3"
                           >
-                            <span className="text-sm text-muted-foreground">Horário livre</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Horário livre</span>
                           </button>
                         )}
                       </div>
