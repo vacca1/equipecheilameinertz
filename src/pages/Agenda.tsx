@@ -264,6 +264,7 @@ const Agenda = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
@@ -528,13 +529,59 @@ const Agenda = () => {
 
         {/* Calendar Grid - Mobile (Day View) */}
         <div className="lg:hidden space-y-4">
-          {weekDays.map((day) => {
+          {/* Mobile Day Navigation */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedDayIndex((prev) => Math.max(0, prev - 1))}
+              disabled={selectedDayIndex === 0}
+              className="flex-shrink-0"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            <div className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide">
+              {weekDays.map((day, index) => (
+                <Button
+                  key={day.toISOString()}
+                  variant={selectedDayIndex === index ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedDayIndex(index)}
+                  className="flex-shrink-0 min-w-[80px]"
+                >
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs opacity-80">
+                      {format(day, "EEE", { locale: ptBR })}
+                    </span>
+                    <span className="text-sm font-semibold">
+                      {format(day, "dd/MM")}
+                    </span>
+                  </div>
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedDayIndex((prev) => Math.min(5, prev + 1))}
+              disabled={selectedDayIndex === 5}
+              className="flex-shrink-0"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Selected Day Card */}
+          {(() => {
+            const day = weekDays[selectedDayIndex];
             const dateKey = format(day, "yyyy-MM-dd");
             const allAppointments = mockAppointments[dateKey] || [];
             const appointments = filterAppointmentsByTherapist(allAppointments);
 
             return (
-              <Card key={day.toISOString()} className="p-3 sm:p-4 shadow-soft">
+              <Card className="p-3 sm:p-4 shadow-soft">
                 <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 pb-2 border-b border-border flex items-center justify-between">
                   <span>{format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}</span>
                   <Badge variant="outline" className="text-xs">
@@ -597,7 +644,7 @@ const Agenda = () => {
                 </div>
               </Card>
             );
-          })}
+          })()}
         </div>
 
         {/* Appointment Modal */}
