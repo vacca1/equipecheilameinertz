@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 interface SplashScreenProps {
@@ -19,11 +19,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     // Marca como visto nesta sessão
     sessionStorage.setItem('hasSeenSplash', 'true');
 
-    // Efeito sonoro sutil usando Web Audio API
+    // Efeito sonoro sutil usando Web Audio API (com desbloqueio por interação)
     const playWelcomeSound = async () => {
       try {
         console.log('🔊 Iniciando áudio...');
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        const audioContext = new AudioCtx();
         
         // Resume AudioContext (necessário em alguns browsers)
         if (audioContext.state === 'suspended') {
@@ -31,18 +32,32 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           console.log('✅ AudioContext resumed');
         }
         
+        // Master chain (mais volume, com compressor para evitar clipping)
+        const masterGain = audioContext.createGain();
+        masterGain.gain.value = 0.6; // volume global elevado
+        
+        const compressor = audioContext.createDynamicsCompressor();
+        compressor.threshold.value = -24;
+        compressor.knee.value = 30;
+        compressor.ratio.value = 12;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.25;
+        
+        masterGain.connect(compressor);
+        compressor.connect(audioContext.destination);
+        
         console.log('🎵 AudioContext state:', audioContext.state);
         
-        // Criar som agradável com osciladores
+        // Criar som audível em alto-falantes de celular
         const playTone = (frequency: number, startTime: number, duration: number, volume: number) => {
           const oscillator = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
           
           oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
+          gainNode.connect(masterGain);
           
           oscillator.frequency.value = frequency;
-          oscillator.type = 'sine';
+          oscillator.type = 'triangle'; // mais presença no mobile
           
           gainNode.gain.setValueAtTime(0, startTime);
           gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.05);
@@ -51,14 +66,14 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           oscillator.start(startTime);
           oscillator.stop(startTime + duration);
           
-          console.log(`🎼 Tocando: ${frequency}Hz, volume: ${volume}`);
+          console.log(`🎼 Tocando: ${frequency}Hz, vol: ${volume}`);
         };
         
-        // Acorde agradável (C maior) com volumes audíveis
+        // Tríade com intervalos mais agudos (audível em celular)
         const now = audioContext.currentTime;
-        playTone(523.25, now, 0.8, 0.15); // C5 - aumentado de 0.05 para 0.15
-        playTone(659.25, now + 0.1, 0.8, 0.12); // E5 - aumentado de 0.04 para 0.12
-        playTone(783.99, now + 0.2, 1.0, 0.10); // G5 - aumentado de 0.03 para 0.10
+        playTone(659.25, now, 0.9, 0.4);    // E5
+        playTone(880.0,  now + 0.06, 0.9, 0.35); // A5
+        playTone(1046.5, now + 0.12, 1.0, 0.30); // C6
         
         console.log('✅ Sons agendados para tocar');
         
@@ -67,8 +82,19 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
       }
     };
 
-    // Toca som após pequeno delay para sincronizar com animação
-    setTimeout(playWelcomeSound, 200);
+    // Tenta tocar automaticamente (pode ser bloqueado pelo navegador)
+    const autoTimer = setTimeout(playWelcomeSound, 200);
+
+    // Desbloqueio por primeira interação do usuário (necessário no iOS/Safari)
+    const onInteract = async () => {
+      await playWelcomeSound();
+      window.removeEventListener('pointerdown', onInteract);
+      window.removeEventListener('touchstart', onInteract);
+      window.removeEventListener('keydown', onInteract);
+    };
+    window.addEventListener('pointerdown', onInteract, { once: true });
+    window.addEventListener('touchstart', onInteract, { once: true });
+    window.addEventListener('keydown', onInteract, { once: true });
 
     // Timer para iniciar saída automática após 3.5s
     const exitTimer = setTimeout(() => {
@@ -81,8 +107,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     }, 4200);
 
     return () => {
+      clearTimeout(autoTimer);
       clearTimeout(exitTimer);
       clearTimeout(completeTimer);
+      window.removeEventListener('pointerdown', onInteract);
+      window.removeEventListener('touchstart', onInteract);
+      window.removeEventListener('keydown', onInteract);
     };
   }, [onComplete]);
 
