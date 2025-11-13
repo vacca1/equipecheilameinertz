@@ -244,6 +244,7 @@ export default function Patients() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(mockPatients[0]);
   const [patientModalOpen, setPatientModalOpen] = useState(false);
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [filterTherapist, setFilterTherapist] = useState("all");
   const [filterInsurance, setFilterInsurance] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -317,7 +318,13 @@ export default function Patients() {
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
               <CardTitle className="text-xl">Pacientes</CardTitle>
-              <Button onClick={() => setPatientModalOpen(true)} size="sm">
+              <Button 
+                onClick={() => {
+                  setEditingPatient(null);
+                  setPatientModalOpen(true);
+                }} 
+                size="sm"
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 Novo
               </Button>
@@ -449,7 +456,14 @@ export default function Patients() {
                     {selectedPatient.insurance} • {selectedPatient.therapist}
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setEditingPatient(selectedPatient);
+                    setPatientModalOpen(true);
+                  }}
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
@@ -696,7 +710,10 @@ export default function Patients() {
               <p className="text-muted-foreground mb-4">
                 Selecione um paciente da lista ou crie um novo
               </p>
-              <Button onClick={() => setPatientModalOpen(true)}>
+              <Button onClick={() => {
+                setEditingPatient(null);
+                setPatientModalOpen(true);
+              }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Paciente
               </Button>
@@ -708,8 +725,15 @@ export default function Patients() {
       {/* Modals */}
       <PatientFormModal
         open={patientModalOpen}
-        onOpenChange={setPatientModalOpen}
-        onSave={(data) => console.log("Paciente salvo:", data)}
+        onOpenChange={(open) => {
+          setPatientModalOpen(open);
+          if (!open) setEditingPatient(null);
+        }}
+        patient={editingPatient}
+        onSave={(data) => {
+          console.log("Paciente salvo:", data);
+          setEditingPatient(null);
+        }}
       />
 
       {selectedPatient && (

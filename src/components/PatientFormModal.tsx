@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -98,9 +99,53 @@ export function PatientFormModal({
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [loadingCep, setLoadingCep] = useState(false);
 
-  const form = useForm<PatientFormData>({
-    resolver: zodResolver(patientSchema),
-    defaultValues: patient || {
+  // Converter dados do paciente para o formato do formulário
+  const getDefaultValues = () => {
+    if (patient) {
+      // Converter data de string DD/MM/YYYY para Date
+      const parseBirthDate = (dateStr: string) => {
+        if (!dateStr) return undefined;
+        const [day, month, year] = dateStr.split('/');
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      };
+
+      return {
+        name: patient.name || "",
+        birthDate: patient.birthDate ? parseBirthDate(patient.birthDate) : undefined,
+        cpf: patient.cpf || "",
+        rg: "",
+        cep: "",
+        address: "",
+        city: "",
+        state: "",
+        number: "",
+        complement: "",
+        insurance: patient.insurance || "",
+        phone1: patient.phone || "",
+        phone2: "",
+        email: patient.email || "",
+        requestingDoctor: "",
+        medicalDiagnosis: "",
+        previousPathologies: "",
+        hvp: "",
+        hvaQp: "",
+        professionHobby: "",
+        physicalExam: "",
+        surgeries: "",
+        medications: "",
+        treatmentPlan: "",
+        specificRoom: "",
+        scheduleFlexibility: false,
+        flexibilityNotes: "",
+        billingDate: "",
+        requiresInvoice: false,
+        mainTherapist: patient.mainTherapist || "",
+        substituteTherapist: "",
+        commissionPercentage: patient.commissionPercentage || "",
+        generalNotes: "",
+      };
+    }
+    return {
       name: "",
       cpf: "",
       rg: "",
@@ -112,8 +157,20 @@ export function PatientFormModal({
       requiresInvoice: false,
       medicalDiagnosis: "",
       mainTherapist: "",
-    },
+    };
+  };
+
+  const form = useForm<PatientFormData>({
+    resolver: zodResolver(patientSchema),
+    defaultValues: getDefaultValues(),
   });
+
+  // Atualizar valores quando o paciente mudar
+  React.useEffect(() => {
+    if (open) {
+      form.reset(getDefaultValues());
+    }
+  }, [open, patient]);
 
   const handleCepBlur = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, "");
