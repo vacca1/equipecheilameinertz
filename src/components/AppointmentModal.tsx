@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { therapists } from "@/data/therapists";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -22,7 +23,6 @@ interface AppointmentModalProps {
   prefilledTime?: string;
 }
 
-const therapists = ["Ana Falcão", "Cheila", "Grazii"];
 const rooms = ["Sala 1", "Sala 2", "Sala 3"];
 const durations = ["30min", "45min", "1h", "1h15", "1h30"];
 const timeSlots = Array.from({ length: 50 }, (_, i) => {

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { therapists, therapistCommissions } from "@/data/therapists";
 
 const incomeSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
@@ -67,14 +68,9 @@ export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
 
   const selectedTherapist = form.watch("therapist");
   
-  // Calcular comissão automaticamente baseado no terapeuta
+  // Calcular comissão automaticamente baseado no terapeuta usando valores do arquivo centralizado
   const getCommissionPercentage = (therapist: string) => {
-    const commissions: Record<string, number> = {
-      "ana": 65,
-      "cheila": 60,
-      "grazii": 55,
-    };
-    return commissions[therapist] || 0;
+    return therapistCommissions[therapist] || 0;
   };
 
   const calculateCommission = () => {
@@ -154,9 +150,11 @@ export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="ana">Ana Falcão (65%)</SelectItem>
-                        <SelectItem value="cheila">Cheila (60%)</SelectItem>
-                        <SelectItem value="grazii">Grazii (55%)</SelectItem>
+                        {therapists.map((therapist) => (
+                          <SelectItem key={therapist} value={therapist}>
+                            {therapist} ({therapistCommissions[therapist]}%)
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -28,6 +28,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
+import { therapists } from "@/data/therapists";
 
 const sessionSchema = z.object({
   date: z.string(),
@@ -130,9 +131,11 @@ export function SessionModal({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="ana">Ana Falcão</SelectItem>
-                        <SelectItem value="cheila">Cheila</SelectItem>
-                        <SelectItem value="grazii">Grazii</SelectItem>
+                        {therapists.map((therapist) => (
+                          <SelectItem key={therapist} value={therapist}>
+                            {therapist}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

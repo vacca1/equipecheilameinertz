@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+import { therapists } from "@/data/therapists";
 
 const expenseSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
@@ -172,9 +173,11 @@ export function ExpenseModal({ open, onOpenChange, onSave }: ExpenseModalProps) 
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="ana">Ana Falcão</SelectItem>
-                      <SelectItem value="cheila">Cheila</SelectItem>
-                      <SelectItem value="grazii">Grazii</SelectItem>
+                      {therapists.map((therapist) => (
+                        <SelectItem key={therapist} value={therapist}>
+                          {therapist}
+                        </SelectItem>
+                      ))}
                       <SelectItem value="secretary">Secretária</SelectItem>
                     </SelectContent>
                   </Select>
@@ -197,9 +200,11 @@ export function ExpenseModal({ open, onOpenChange, onSave }: ExpenseModalProps) 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="ana">Ana Falcão</SelectItem>
-                        <SelectItem value="cheila">Cheila</SelectItem>
-                        <SelectItem value="grazii">Grazii</SelectItem>
+                        {therapists.map((therapist) => (
+                          <SelectItem key={therapist} value={therapist}>
+                            {therapist}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

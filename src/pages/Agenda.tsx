@@ -10,6 +10,7 @@ import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { AppointmentModal } from "@/components/AppointmentModal";
+import { therapistsWithAll } from "@/data/therapists";
 
 type AppointmentStatus = "confirmed" | "pending" | "blocked" | "cancelled" | "free";
 
@@ -217,7 +218,7 @@ const mockAppointments: Record<string, Appointment[]> = {
   ],
 };
 
-const therapists = ["TODAS", "Ana Falcão", "Cheila", "Grazii"];
+
 
 const timeSlots = Array.from({ length: 50 }, (_, i) => {
   const totalMinutes = 7.5 * 60 + i * 15;
@@ -355,7 +356,7 @@ const Agenda = () => {
 
           {/* Therapist Tabs */}
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {therapists.map((therapist) => (
+            {therapistsWithAll.map((therapist) => (
               <Button
                 key={therapist}
                 variant={selectedTherapist === therapist ? "default" : "outline"}

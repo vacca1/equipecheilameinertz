@@ -39,6 +39,7 @@ import { CalendarIcon, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { therapists } from "@/data/therapists";
 
 const patientSchema = z.object({
   // Dados Pessoais
@@ -852,9 +853,11 @@ export function PatientFormModal({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="ana">Ana Falcão</SelectItem>
-                            <SelectItem value="cheila">Cheila</SelectItem>
-                            <SelectItem value="grazii">Grazii</SelectItem>
+                            {therapists.map((therapist) => (
+                              <SelectItem key={therapist} value={therapist}>
+                                {therapist}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -876,9 +879,11 @@ export function PatientFormModal({
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="nenhuma">Nenhuma</SelectItem>
-                            <SelectItem value="ana">Ana Falcão</SelectItem>
-                            <SelectItem value="cheila">Cheila</SelectItem>
-                            <SelectItem value="grazii">Grazii</SelectItem>
+                            {therapists.map((therapist) => (
+                              <SelectItem key={therapist} value={therapist}>
+                                {therapist}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
