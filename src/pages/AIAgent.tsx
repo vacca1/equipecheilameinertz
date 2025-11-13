@@ -107,85 +107,100 @@ const AIAgent = () => {
   return (
     <div className="space-y-6">
       {/* Header with Agent Status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
-            <Bot className="w-8 h-8 text-primary" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="p-2 sm:p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
+            <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 flex-wrap">
               Agente de IA
               {isAgentActive && (
-                <Badge className="bg-success text-white animate-pulse">
+                <Badge className="bg-success text-white animate-pulse text-xs">
                   🟢 ATIVO
                 </Badge>
               )}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Monitoramento e análise do atendimento automatizado
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button 
             variant={isAgentActive ? "destructive" : "default"}
             onClick={() => setIsAgentActive(!isAgentActive)}
-            className="shadow-soft"
+            className="shadow-soft flex-1 sm:flex-none text-xs sm:text-sm"
+            size="sm"
           >
-            {isAgentActive ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-            {isAgentActive ? "Pausar Agente" : "Ativar Agente"}
+            {isAgentActive ? <Pause className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />}
+            <span className="hidden sm:inline">{isAgentActive ? "Pausar Agente" : "Ativar Agente"}</span>
+            <span className="sm:hidden">{isAgentActive ? "Pausar" : "Ativar"}</span>
           </Button>
-          <Button variant="outline" className="shadow-soft">
-            <Settings className="w-4 h-4 mr-2" />
-            Configurar
+          <Button variant="outline" className="shadow-soft flex-1 sm:flex-none text-xs sm:text-sm" size="sm">
+            <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Configurar</span>
+            <span className="sm:hidden">Config</span>
           </Button>
         </div>
       </div>
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
-          <TabsTrigger value="dashboard">📊 Dashboard</TabsTrigger>
-          <TabsTrigger value="conversations">💬 Conversas</TabsTrigger>
-          <TabsTrigger value="metrics">📈 Métricas</TabsTrigger>
-          <TabsTrigger value="leads">🎯 Leads</TabsTrigger>
+        <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide">
+          <TabsTrigger value="dashboard" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+            <span className="hidden sm:inline">📊 Dashboard</span>
+            <span className="sm:hidden">📊</span>
+          </TabsTrigger>
+          <TabsTrigger value="conversations" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+            <span className="hidden sm:inline">💬 Conversas</span>
+            <span className="sm:hidden">💬</span>
+          </TabsTrigger>
+          <TabsTrigger value="metrics" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+            <span className="hidden sm:inline">📈 Métricas</span>
+            <span className="sm:hidden">📈</span>
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+            <span className="hidden sm:inline">🎯 Leads</span>
+            <span className="sm:hidden">🎯</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">
           {/* Main Metrics Cards */}
-          <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             {/* Card 1: Leads Atendidos */}
-            <Card className="p-6 shadow-soft relative overflow-hidden">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
-                  <Bot className="w-6 h-6 text-primary" />
+            <Card className="p-3 sm:p-4 md:p-6 shadow-soft relative overflow-hidden">
+              <div className="flex items-start justify-between mb-2 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg sm:rounded-xl">
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary" />
                 </div>
-                <div className="flex items-center gap-1 text-success text-sm font-medium">
-                  <ArrowUp className="w-4 h-4" />
-                  +23%
+                <div className="flex items-center gap-0.5 sm:gap-1 text-success text-xs sm:text-sm font-medium">
+                  <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">+23%</span>
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">Leads Atendidos</div>
-                <div className="text-2xl font-bold text-primary">{mainMetrics.leadsAttended}</div>
-                <div className="text-xs text-muted-foreground">este mês</div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Leads Atendidos</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{mainMetrics.leadsAttended}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">este mês</div>
               </div>
             </Card>
 
             {/* Card 2: Taxa de Conversão */}
-            <Card className="p-6 shadow-soft relative overflow-hidden">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl">
-                  <Target className="w-6 h-6 text-success" />
+            <Card className="p-3 sm:p-4 md:p-6 shadow-soft relative overflow-hidden">
+              <div className="flex items-start justify-between mb-2 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-lg sm:rounded-xl">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-success" />
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">Taxa de Conversão</div>
-                <div className="text-2xl font-bold text-success">{mainMetrics.conversionRate}%</div>
-                <div className="text-xs text-muted-foreground">leads → agendamentos</div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Taxa de Conversão</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-success">{mainMetrics.conversionRate}%</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">leads → agend.</div>
               </div>
-              <div className="absolute bottom-2 right-2 w-16 h-16 opacity-20">
+              <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-12 h-12 sm:w-16 sm:h-16 opacity-20 hidden sm:block">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -205,58 +220,58 @@ const AIAgent = () => {
             </Card>
 
             {/* Card 3: Tempo Médio */}
-            <Card className="p-6 shadow-soft">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-warning/20 to-warning/5 rounded-xl">
-                  <Clock className="w-6 h-6 text-warning" />
+            <Card className="p-3 sm:p-4 md:p-6 shadow-soft">
+              <div className="flex items-start justify-between mb-2 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-warning/20 to-warning/5 rounded-lg sm:rounded-xl">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-warning" />
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">Tempo Médio</div>
-                <div className="text-2xl font-bold text-warning">{mainMetrics.avgTime}</div>
-                <div className="text-xs text-success">34% mais rápido</div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Tempo Médio</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-warning">{mainMetrics.avgTime}</div>
+                <div className="text-[10px] sm:text-xs text-success">34% + rápido</div>
               </div>
             </Card>
 
             {/* Card 4: Agendamentos */}
-            <Card className="p-6 shadow-soft">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
-                  <Calendar className="w-6 h-6 text-primary" />
+            <Card className="p-3 sm:p-4 md:p-6 shadow-soft">
+              <div className="flex items-start justify-between mb-2 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg sm:rounded-xl">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary" />
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">Agendamentos</div>
-                <div className="text-2xl font-bold">{mainMetrics.scheduledAppointments}</div>
-                <div className="text-xs text-muted-foreground">confirmados</div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Agendamentos</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold">{mainMetrics.scheduledAppointments}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">confirmados</div>
               </div>
             </Card>
 
             {/* Card 5: Satisfação */}
-            <Card className="p-6 shadow-soft">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-warning/20 to-warning/5 rounded-xl">
-                  <Star className="w-6 h-6 text-warning fill-warning" />
+            <Card className="p-3 sm:p-4 md:p-6 shadow-soft">
+              <div className="flex items-start justify-between mb-2 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-warning/20 to-warning/5 rounded-lg sm:rounded-xl">
+                  <Star className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-warning fill-warning" />
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">Satisfação</div>
-                <div className="text-2xl font-bold text-warning">{mainMetrics.satisfaction}/5.0</div>
-                <div className="text-xs text-muted-foreground">189 avaliações</div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Satisfação</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-warning">{mainMetrics.satisfaction}/5.0</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">189 aval.</div>
               </div>
             </Card>
 
             {/* Card 6: Atendimentos Ativos */}
-            <Card className="p-6 shadow-soft border-primary/20">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl animate-pulse">
-                  <MessageSquare className="w-6 h-6 text-primary" />
+            <Card className="p-3 sm:p-4 md:p-6 shadow-soft border-primary/20">
+              <div className="flex items-start justify-between mb-2 sm:mb-4">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg sm:rounded-xl animate-pulse">
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary" />
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">Em Andamento</div>
-                <div className="text-2xl font-bold text-primary">{mainMetrics.activeChats}</div>
-                <div className="text-xs text-success">tempo real 🟢</div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Em Andamento</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{mainMetrics.activeChats}</div>
+                <div className="text-[10px] sm:text-xs text-success">tempo real 🟢</div>
               </div>
             </Card>
           </div>
