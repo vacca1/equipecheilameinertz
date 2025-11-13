@@ -20,9 +20,18 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     sessionStorage.setItem('hasSeenSplash', 'true');
 
     // Efeito sonoro sutil usando Web Audio API
-    const playWelcomeSound = () => {
+    const playWelcomeSound = async () => {
       try {
+        console.log('🔊 Iniciando áudio...');
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        // Resume AudioContext (necessário em alguns browsers)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+          console.log('✅ AudioContext resumed');
+        }
+        
+        console.log('🎵 AudioContext state:', audioContext.state);
         
         // Criar som agradável com osciladores
         const playTone = (frequency: number, startTime: number, duration: number, volume: number) => {
@@ -41,17 +50,20 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           
           oscillator.start(startTime);
           oscillator.stop(startTime + duration);
+          
+          console.log(`🎼 Tocando: ${frequency}Hz, volume: ${volume}`);
         };
         
-        // Acorde agradável (C maior) com volumes suaves
+        // Acorde agradável (C maior) com volumes audíveis
         const now = audioContext.currentTime;
-        playTone(523.25, now, 0.8, 0.05); // C5
-        playTone(659.25, now + 0.1, 0.8, 0.04); // E5
-        playTone(783.99, now + 0.2, 1.0, 0.03); // G5
+        playTone(523.25, now, 0.8, 0.15); // C5 - aumentado de 0.05 para 0.15
+        playTone(659.25, now + 0.1, 0.8, 0.12); // E5 - aumentado de 0.04 para 0.12
+        playTone(783.99, now + 0.2, 1.0, 0.10); // G5 - aumentado de 0.03 para 0.10
+        
+        console.log('✅ Sons agendados para tocar');
         
       } catch (error) {
-        // Silenciosamente falha se áudio não estiver disponível
-        console.log('Audio not available');
+        console.error('❌ Erro ao reproduzir áudio:', error);
       }
     };
 
