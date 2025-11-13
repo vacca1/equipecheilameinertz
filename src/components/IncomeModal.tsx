@@ -1,0 +1,304 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
+const incomeSchema = z.object({
+  date: z.string().min(1, "Data é obrigatória"),
+  patient: z.string().min(1, "Paciente é obrigatório"),
+  therapist: z.string().min(1, "Fisioterapeuta é obrigatória"),
+  value: z.string().min(1, "Valor é obrigatório"),
+  paymentMethod: z.string().min(1, "Forma de pagamento é obrigatória"),
+  invoiceDelivered: z.boolean(),
+  paymentStatus: z.string().min(1, "Status é obrigatório"),
+  observations: z.string().optional(),
+});
+
+type IncomeFormData = z.infer<typeof incomeSchema>;
+
+interface IncomeModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: IncomeFormData) => void;
+}
+
+export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
+  const now = new Date();
+  const currentDate = now.toISOString().slice(0, 10);
+
+  const form = useForm<IncomeFormData>({
+    resolver: zodResolver(incomeSchema),
+    defaultValues: {
+      date: currentDate,
+      patient: "",
+      therapist: "",
+      value: "",
+      paymentMethod: "",
+      invoiceDelivered: false,
+      paymentStatus: "paid",
+      observations: "",
+    },
+  });
+
+  const selectedTherapist = form.watch("therapist");
+  
+  // Calcular comissão automaticamente baseado no terapeuta
+  const getCommissionPercentage = (therapist: string) => {
+    const commissions: Record<string, number> = {
+      "ana": 65,
+      "cheila": 60,
+      "grazii": 55,
+    };
+    return commissions[therapist] || 0;
+  };
+
+  const calculateCommission = () => {
+    const value = parseFloat(form.watch("value") || "0");
+    const percentage = getCommissionPercentage(selectedTherapist);
+    return (value * percentage / 100).toFixed(2);
+  };
+
+  const onSubmit = (data: IncomeFormData) => {
+    onSave(data);
+    toast.success("Entrada registrada com sucesso!");
+    onOpenChange(false);
+    form.reset();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Adicionar Entrada</DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="patient"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Paciente *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o paciente" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="maria">Maria da Silva Santos</SelectItem>
+                        <SelectItem value="joao">João Pedro Oliveira</SelectItem>
+                        <SelectItem value="ana">Ana Carolina Souza</SelectItem>
+                        <SelectItem value="carlos">Carlos Eduardo Lima</SelectItem>
+                        <SelectItem value="patricia">Patricia Mendes Costa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="therapist"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fisioterapeuta *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ana">Ana Falcão (65%)</SelectItem>
+                        <SelectItem value="cheila">Cheila (60%)</SelectItem>
+                        <SelectItem value="grazii">Grazii (55%)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor (R$) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="100.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {selectedTherapist && form.watch("value") && (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Comissão Calculada:</span>
+                  <span className="text-lg font-bold text-primary">
+                    R$ {calculateCommission()} ({getCommissionPercentage(selectedTherapist)}%)
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Forma de Pagamento *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="cash">Dinheiro</SelectItem>
+                        <SelectItem value="debit">Débito</SelectItem>
+                        <SelectItem value="credit">Crédito</SelectItem>
+                        <SelectItem value="insurance">Convênio</SelectItem>
+                        <SelectItem value="boleto">Boleto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="paymentStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status do Pagamento *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="paid">Pago</SelectItem>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="invoiceDelivered"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Nota Fiscal Emitida?</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="observations"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Observações</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Informações adicionais sobre a entrada"
+                      className="min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  form.reset();
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit">
+                Salvar Entrada
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
