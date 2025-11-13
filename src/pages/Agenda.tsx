@@ -321,46 +321,45 @@ const Agenda = () => {
         <div className="flex flex-col gap-4">
 
           {/* Week Navigator */}
-          <Card className="p-4 shadow-soft">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
+          <Card className="p-3 sm:p-4 shadow-soft">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}
-                className="shadow-soft"
+                className="shadow-soft flex-shrink-0"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
 
-              <div className="flex items-center gap-3 flex-1 justify-center">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="shadow-soft">
-                      <CalendarIcon className="w-5 h-5 mr-2 text-primary" />
-                      <span className="font-semibold text-base">
-                        Semana de {format(weekDays[0], "dd/MM", { locale: ptBR })} a{" "}
-                        {format(weekDays[5], "dd/MM/yyyy", { locale: ptBR })}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="center">
-                    <Calendar
-                      mode="single"
-                      selected={currentWeek}
-                      onSelect={(date) => date && setCurrentWeek(date)}
-                      initialFocus
-                      className="pointer-events-auto"
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="shadow-soft flex-1 min-w-0">
+                    <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 text-primary flex-shrink-0" />
+                    <span className="font-semibold text-xs sm:text-base truncate">
+                      <span className="hidden sm:inline">Semana de </span>
+                      {format(weekDays[0], "dd/MM", { locale: ptBR })} <span className="hidden sm:inline">a</span>
+                      <span className="sm:hidden">-</span> {format(weekDays[5], "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={currentWeek}
+                    onSelect={(date) => date && setCurrentWeek(date)}
+                    initialFocus
+                    className="pointer-events-auto"
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
 
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}
-                className="shadow-soft"
+                className="shadow-soft flex-shrink-0"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
