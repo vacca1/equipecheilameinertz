@@ -858,7 +858,7 @@ export function PatientFormModal({
                               <SelectValue placeholder="Selecione a fisioterapeuta" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="max-h-[300px] overflow-y-auto">
                             {therapists.map((therapist) => (
                               <SelectItem key={therapist} value={therapist}>
                                 {therapist}
@@ -883,7 +883,7 @@ export function PatientFormModal({
                               <SelectValue placeholder="Selecione a substituta" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="max-h-[300px] overflow-y-auto">
                             <SelectItem value="nenhuma">Nenhuma</SelectItem>
                             {therapists.map((therapist) => (
                               <SelectItem key={therapist} value={therapist}>

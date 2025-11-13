@@ -9,9 +9,14 @@ const Reports = () => {
 
   // Mock data for charts
   const revenueDistribution = [
-    { name: "Ana Falcão", value: 4250, percentage: 56 },
-    { name: "Cheila", value: 2100, percentage: 28 },
-    { name: "Grazii", value: 1174, percentage: 16 },
+    { name: "Ana Paula Falcão", value: 4250, percentage: 22 },
+    { name: "Cheila Meinertz", value: 4100, percentage: 21 },
+    { name: "Daniela Wentts", value: 2800, percentage: 14 },
+    { name: "Elenice Brun", value: 2600, percentage: 13 },
+    { name: "Gabi Ritter", value: 2200, percentage: 11 },
+    { name: "Grazi Nichelle", value: 1900, percentage: 10 },
+    { name: "Kamilly Souza", value: 1000, percentage: 5 },
+    { name: "Tassiane Suterio", value: 674, percentage: 4 },
   ];
 
   const monthlyTrend = [
@@ -46,12 +51,13 @@ const Reports = () => {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
             <Button
               variant={period === "week" ? "default" : "ghost"}
               size="sm"
               onClick={() => setPeriod("week")}
+              className="flex-1 sm:flex-none"
             >
               Semana
             </Button>
@@ -59,6 +65,7 @@ const Reports = () => {
               variant={period === "month" ? "default" : "ghost"}
               size="sm"
               onClick={() => setPeriod("month")}
+              className="flex-1 sm:flex-none"
             >
               Mês
             </Button>
@@ -66,11 +73,12 @@ const Reports = () => {
               variant={period === "custom" ? "default" : "ghost"}
               size="sm"
               onClick={() => setPeriod("custom")}
+              className="flex-1 sm:flex-none"
             >
               Personalizado
             </Button>
           </div>
-          <Button className="shadow-soft">
+          <Button className="shadow-soft w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
             Exportar PDF
           </Button>

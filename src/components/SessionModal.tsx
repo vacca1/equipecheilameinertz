@@ -130,7 +130,7 @@ export function SessionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="max-h-[300px] overflow-y-auto">
                         {therapists.map((therapist) => (
                           <SelectItem key={therapist} value={therapist}>
                             {therapist}
