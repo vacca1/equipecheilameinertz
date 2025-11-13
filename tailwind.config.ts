@@ -31,6 +31,14 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -46,6 +54,13 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        status: {
+          confirmed: "hsl(var(--status-confirmed))",
+          pending: "hsl(var(--status-pending))",
+          blocked: "hsl(var(--status-blocked))",
+          cancelled: "hsl(var(--status-cancelled))",
+          free: "hsl(var(--status-free))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -84,6 +99,11 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      boxShadow: {
+        'soft': '0 4px 20px rgba(79, 127, 255, 0.08)',
+        'hover': '0 8px 30px rgba(79, 127, 255, 0.12)',
+        'inset': 'inset 2px 2px 5px rgba(79, 127, 255, 0.1), inset -2px -2px 5px rgba(255, 255, 255, 0.7)',
       },
     },
   },
