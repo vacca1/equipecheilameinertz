@@ -8,6 +8,7 @@ import Agenda from "./pages/Agenda";
 import Patients from "./pages/Patients";
 import CashFlow from "./pages/CashFlow";
 import Reports from "./pages/Reports";
+import AIAgent from "./pages/AIAgent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/patients" element={<Patients />} />
             <Route path="/cash-flow" element={<CashFlow />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/ai-agent" element={<AIAgent />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

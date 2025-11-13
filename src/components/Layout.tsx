@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
-import { Calendar, Users, DollarSign, FileText, Menu, X } from "lucide-react";
+import { Calendar, Users, DollarSign, FileText, Menu, X, Bot } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,7 @@ const navigation = [
   { name: "Pacientes", href: "/patients", icon: Users },
   { name: "Caixa", href: "/cash-flow", icon: DollarSign },
   { name: "Relatórios", href: "/reports", icon: FileText },
+  { name: "Agente IA", href: "/ai-agent", icon: Bot },
 ];
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
