@@ -81,14 +81,14 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl">
+          <DialogTitle className="text-xl sm:text-2xl">
             {appointment ? "Editar Agendamento" : "Novo Agendamento"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-4 sm:gap-6 py-3 sm:py-4">
           {/* Paciente */}
           <div className="grid gap-2">
             <Label htmlFor="patient" className="flex items-center gap-2">
@@ -312,28 +312,28 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 flex-col sm:flex-row">
           {appointment ? (
             <>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
                 Fechar
               </Button>
-              <Button variant="destructive" onClick={handleCancel}>
+              <Button variant="destructive" onClick={handleCancel} className="w-full sm:w-auto">
                 Cancelar Horário
               </Button>
-              <Button onClick={handleSave}>
+              <Button onClick={handleSave} className="w-full sm:w-auto">
                 Salvar Alterações
               </Button>
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
                 Cancelar
               </Button>
-              <Button variant="destructive" onClick={handleBlock}>
+              <Button variant="destructive" onClick={handleBlock} className="w-full sm:w-auto">
                 Bloquear Horário
               </Button>
-              <Button onClick={handleSave}>
+              <Button onClick={handleSave} className="w-full sm:w-auto">
                 Salvar Agendamento
               </Button>
             </>

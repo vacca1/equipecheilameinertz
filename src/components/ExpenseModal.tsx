@@ -76,9 +76,9 @@ export function ExpenseModal({ open, onOpenChange, onSave }: ExpenseModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Adicionar Saída</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl">Adicionar Saída</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -255,7 +255,7 @@ export function ExpenseModal({ open, onOpenChange, onSave }: ExpenseModalProps) 
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -263,10 +263,11 @@ export function ExpenseModal({ open, onOpenChange, onSave }: ExpenseModalProps) 
                   onOpenChange(false);
                   form.reset();
                 }}
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="destructive">
+              <Button type="submit" variant="destructive" className="w-full sm:w-auto">
                 Salvar Saída
               </Button>
             </div>

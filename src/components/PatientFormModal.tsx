@@ -226,20 +226,26 @@ export function PatientFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl">
+          <DialogTitle className="text-xl sm:text-2xl">
             {patient ? "Editar Paciente" : "Novo Paciente"}
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
             <Tabs defaultValue="personal" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="personal">Dados Pessoais</TabsTrigger>
-                <TabsTrigger value="clinical">Informações Clínicas</TabsTrigger>
-                <TabsTrigger value="operational">Operacional</TabsTrigger>
+              <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide">
+                <TabsTrigger value="personal" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <span className="hidden sm:inline">Dados Pessoais</span>
+                  <span className="sm:hidden">Pessoais</span>
+                </TabsTrigger>
+                <TabsTrigger value="clinical" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <span className="hidden sm:inline">Informações Clínicas</span>
+                  <span className="sm:hidden">Clínicos</span>
+                </TabsTrigger>
+                <TabsTrigger value="operational" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">Operacional</TabsTrigger>
               </TabsList>
 
               {/* SEÇÃO 1: DADOS PESSOAIS */}

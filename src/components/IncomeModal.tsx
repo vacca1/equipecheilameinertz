@@ -88,9 +88,9 @@ export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Adicionar Entrada</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl">Adicionar Entrada</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -279,7 +279,7 @@ export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -287,10 +287,11 @@ export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
                   onOpenChange(false);
                   form.reset();
                 }}
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button type="submit" className="w-full sm:w-auto">
                 Salvar Entrada
               </Button>
             </div>
