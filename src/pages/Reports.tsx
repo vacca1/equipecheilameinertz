@@ -31,8 +31,21 @@ const Reports = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Relatórios & Dashboard</h1>
+      {/* Header with Icon */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-warning/20 to-warning/5 rounded-xl shadow-soft">
+            <FileText className="w-8 h-8 text-warning" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              Relatórios & Dashboard
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Análises financeiras e operacionais da clínica
+            </p>
+          </div>
+        </div>
         <div className="flex gap-2">
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
             <Button

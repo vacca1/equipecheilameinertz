@@ -311,9 +311,25 @@ export default function Patients() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-full gap-4">
-      {/* Sidebar - Lista de Pacientes */}
-      <div className="w-full md:w-80 flex-shrink-0">
+    <div className="space-y-6">
+      {/* Header with Icon */}
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl shadow-soft">
+          <User className="w-8 h-8 text-success" />
+        </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            Gestão de Pacientes
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cadastro completo e controle de presença
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row h-full gap-4">
+        {/* Sidebar - Lista de Pacientes */}
+        <div className="w-full md:w-80 flex-shrink-0">
         <Card className="h-full">
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
@@ -444,7 +460,7 @@ export default function Patients() {
         </Card>
       </div>
 
-      {/* Área Principal - Ficha do Paciente */}
+        {/* Área Principal - Ficha do Paciente */}
       <div className="flex-1 overflow-auto">
         {selectedPatient ? (
           <Card>
@@ -720,6 +736,7 @@ export default function Patients() {
             </CardContent>
           </Card>
         )}
+      </div>
       </div>
 
       {/* Modals */}

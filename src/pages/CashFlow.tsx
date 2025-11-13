@@ -248,10 +248,23 @@ export default function CashFlow() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Controle de Caixa</h1>
-        <Button variant="outline">
-          <FileText className="w-4 w-4 mr-2" />
+      {/* Header with Icon */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl shadow-soft">
+            <DollarSign className="w-8 h-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              Controle de Caixa
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Entradas, saídas e fechamento por fisioterapeuta
+            </p>
+          </div>
+        </div>
+        <Button variant="outline" className="shadow-soft">
+          <FileText className="w-4 h-4 mr-2" />
           Exportar Relatório
         </Button>
       </div>
