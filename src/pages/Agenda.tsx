@@ -589,13 +589,8 @@ const Agenda = () => {
                   </Badge>
                 </h3>
                 <div className="space-y-2">
-                  {timeSlots.slice(0, 25).map((time) => {
+                  {timeSlots.map((time) => {
                     const appointment = appointments.find((a) => a.time === time);
-
-                    // Mostrar apenas horários com agendamento ou principais
-                    if (!appointment && time !== "08:00" && time !== "14:00") {
-                      return null;
-                    }
 
                     return (
                       <div key={time} className="flex gap-2">
