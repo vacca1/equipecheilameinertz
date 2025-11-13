@@ -144,12 +144,11 @@ const AIAgent = () => {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
           <TabsTrigger value="dashboard">📊 Dashboard</TabsTrigger>
           <TabsTrigger value="conversations">💬 Conversas</TabsTrigger>
           <TabsTrigger value="metrics">📈 Métricas</TabsTrigger>
           <TabsTrigger value="leads">🎯 Leads</TabsTrigger>
-          <TabsTrigger value="config">⚙️ Configurações</TabsTrigger>
         </TabsList>
 
         {/* Dashboard Tab */}
@@ -553,66 +552,6 @@ const AIAgent = () => {
             <p className="text-muted-foreground mt-4">
               Lista completa de leads, follow-up automático e réguas de relacionamento serão implementados aqui.
             </p>
-          </Card>
-        </TabsContent>
-
-        {/* Config Tab */}
-        <TabsContent value="config" className="space-y-6">
-          <Card className="p-6 shadow-soft">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Configurações do Agente de IA
-            </h2>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Nome do Agente</label>
-                <Input placeholder="Ex: Ana, Dr. Carlos..." defaultValue="Ana IA" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Tom de Voz</label>
-                <Select defaultValue="friendly">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="formal">Formal e profissional</SelectItem>
-                    <SelectItem value="friendly">Amigável e casual</SelectItem>
-                    <SelectItem value="technical">Técnico e informativo</SelectItem>
-                    <SelectItem value="empathetic">Empático e acolhedor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Instruções do Sistema</label>
-                <textarea 
-                  className="w-full min-h-32 p-3 rounded-lg border border-input bg-background"
-                  placeholder="Defina como o agente deve se comportar..."
-                  defaultValue="Você é um assistente virtual especializado em atendimento de uma clínica de fisioterapia. Seja educado, empático e ajude os pacientes a agendar consultas."
-                />
-              </div>
-              <div className="pt-4 border-t">
-                <Button className="w-full">
-                  Salvar Configurações
-                </Button>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 shadow-soft bg-warning/5 border-warning/20">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-warning mb-2">Ativar Lovable AI</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Para utilizar o Agente de IA com modelos de linguagem avançados, 
-                  ative o Lovable AI. Isso permitirá conversas naturais, qualificação 
-                  automática de leads e agendamentos inteligentes.
-                </p>
-                <Button variant="outline" className="border-warning text-warning hover:bg-warning/10">
-                  Ativar Lovable AI
-                </Button>
-              </div>
-            </div>
           </Card>
         </TabsContent>
       </Tabs>
