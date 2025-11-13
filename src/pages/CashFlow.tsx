@@ -371,10 +371,17 @@ export default function CashFlow() {
 
       {/* Tabelas */}
       <Tabs defaultValue="income" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="income">Entradas</TabsTrigger>
-          <TabsTrigger value="expenses">Saídas</TabsTrigger>
-          <TabsTrigger value="therapists">Fechamento por Fisioterapeuta</TabsTrigger>
+        <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide">
+          <TabsTrigger value="income" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+            Entradas
+          </TabsTrigger>
+          <TabsTrigger value="expenses" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+            Saídas
+          </TabsTrigger>
+          <TabsTrigger value="therapists" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+            <span className="hidden sm:inline">Fechamento por Fisioterapeuta</span>
+            <span className="sm:hidden">Fechamento</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="income" className="mt-6 space-y-4">
