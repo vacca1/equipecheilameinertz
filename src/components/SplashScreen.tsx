@@ -112,36 +112,26 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
       {/* Conteúdo principal */}
       <div className="flex flex-col items-center relative z-10">
         {/* Logo com animações de entrada e pulsação */}
-        <div className="mb-6 animate-logo-entry animate-logo-pulse">
+        <div className="mb-8 animate-logo-entry animate-logo-pulse">
           <img 
             src="/logo-clinica.png" 
             alt="Equipe Cheila Meinertz" 
-            className="w-[160px] h-auto md:w-[200px] drop-shadow-lg"
-            style={{ filter: 'drop-shadow(0 0 40px rgba(79, 127, 255, 0.4))' }}
+            className="w-[280px] h-auto md:w-[380px] drop-shadow-2xl"
+            style={{ filter: 'drop-shadow(0 0 50px rgba(79, 127, 255, 0.3))' }}
           />
         </div>
         
-        {/* Nome da clínica - aparece aos 1.2s */}
-        <h2 
+        {/* Tagline - aparece aos 1.2s (texto agora redundante com logo) */}
+        <p 
           className="
-            text-2xl md:text-3xl font-light text-gray-700 tracking-wide text-center
+            text-lg md:text-xl font-light text-gray-600 tracking-wide text-center
             opacity-0
           "
           style={{ animation: 'fadeIn 0.6s ease-out 1.2s forwards' }}
         >
-          Equipe Cheila Meinertz
-        </h2>
-        
-        {/* Tagline - aparece aos 1.5s */}
-        <p 
-          className="
-            mt-2 text-sm md:text-base text-gray-500 text-center px-4
-            opacity-0
-          "
-          style={{ animation: 'fadeIn 0.6s ease-out 1.5s forwards' }}
-        >
-          Cuidado e Excelência em Fisioterapia
+          Fisioterapia e Reabilitação
         </p>
+        
         
         {/* Loading dots - aparecem aos 2.5s */}
         <div 
