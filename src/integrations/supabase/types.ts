@@ -14,7 +14,333 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          created_at: string | null
+          date: string
+          duration: number | null
+          id: string
+          is_first_session: boolean | null
+          notes: string | null
+          patient_id: string | null
+          patient_name: string
+          repeat_until: string | null
+          repeat_weekly: boolean | null
+          room: string | null
+          status: string | null
+          therapist: string
+          time: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          duration?: number | null
+          id?: string
+          is_first_session?: boolean | null
+          notes?: string | null
+          patient_id?: string | null
+          patient_name: string
+          repeat_until?: string | null
+          repeat_weekly?: boolean | null
+          room?: string | null
+          status?: string | null
+          therapist: string
+          time: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          duration?: number | null
+          id?: string
+          is_first_session?: boolean | null
+          notes?: string | null
+          patient_id?: string | null
+          patient_name?: string
+          repeat_until?: string | null
+          repeat_weekly?: boolean | null
+          room?: string | null
+          status?: string | null
+          therapist?: string
+          time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          category: string
+          created_at: string | null
+          date: string
+          description: string
+          file_url: string | null
+          id: string
+          observations: string | null
+          responsible: string | null
+          therapist: string | null
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          date: string
+          description: string
+          file_url?: string | null
+          id?: string
+          observations?: string | null
+          responsible?: string | null
+          therapist?: string | null
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          date?: string
+          description?: string
+          file_url?: string | null
+          id?: string
+          observations?: string | null
+          responsible?: string | null
+          therapist?: string | null
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
+      incomes: {
+        Row: {
+          commission_percentage: number | null
+          commission_value: number | null
+          created_at: string | null
+          date: string
+          id: string
+          invoice_delivered: boolean | null
+          observations: string | null
+          patient_name: string
+          payment_method: string | null
+          payment_status: string | null
+          session_id: string | null
+          therapist: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          commission_percentage?: number | null
+          commission_value?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          invoice_delivered?: boolean | null
+          observations?: string | null
+          patient_name: string
+          payment_method?: string | null
+          payment_status?: string | null
+          session_id?: string | null
+          therapist: string
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          commission_percentage?: number | null
+          commission_value?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          invoice_delivered?: boolean | null
+          observations?: string | null
+          patient_name?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          session_id?: string | null
+          therapist?: string
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incomes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          cep: string | null
+          city: string | null
+          commission_percentage: number | null
+          cpf: string | null
+          created_at: string | null
+          days_per_week: number | null
+          diagnosis: string | null
+          email: string | null
+          emergency_contact: string | null
+          health_plan: string | null
+          id: string
+          invoice_delivery: string | null
+          main_therapist: string
+          medical_authorization: string | null
+          medical_report: string | null
+          name: string
+          observations: string | null
+          payment_day: number | null
+          payment_method: string | null
+          phone: string | null
+          plan_number: string | null
+          session_value: number | null
+          state: string | null
+          status: string | null
+          substitute_therapist: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          cep?: string | null
+          city?: string | null
+          commission_percentage?: number | null
+          cpf?: string | null
+          created_at?: string | null
+          days_per_week?: number | null
+          diagnosis?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          health_plan?: string | null
+          id?: string
+          invoice_delivery?: string | null
+          main_therapist: string
+          medical_authorization?: string | null
+          medical_report?: string | null
+          name: string
+          observations?: string | null
+          payment_day?: number | null
+          payment_method?: string | null
+          phone?: string | null
+          plan_number?: string | null
+          session_value?: number | null
+          state?: string | null
+          status?: string | null
+          substitute_therapist?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          cep?: string | null
+          city?: string | null
+          commission_percentage?: number | null
+          cpf?: string | null
+          created_at?: string | null
+          days_per_week?: number | null
+          diagnosis?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          health_plan?: string | null
+          id?: string
+          invoice_delivery?: string | null
+          main_therapist?: string
+          medical_authorization?: string | null
+          medical_report?: string | null
+          name?: string
+          observations?: string | null
+          payment_day?: number | null
+          payment_method?: string | null
+          phone?: string | null
+          plan_number?: string | null
+          session_value?: number | null
+          state?: string | null
+          status?: string | null
+          substitute_therapist?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          commission_percentage: number | null
+          commission_value: number | null
+          created_at: string | null
+          date: string
+          final_pain_level: number | null
+          id: string
+          initial_pain_level: number | null
+          invoice_delivered: boolean | null
+          observations: string | null
+          patient_id: string | null
+          patient_name: string
+          payment_method: string | null
+          payment_status: string | null
+          session_number: number
+          session_value: number | null
+          therapist: string
+          updated_at: string | null
+          was_reimbursed: boolean | null
+        }
+        Insert: {
+          commission_percentage?: number | null
+          commission_value?: number | null
+          created_at?: string | null
+          date: string
+          final_pain_level?: number | null
+          id?: string
+          initial_pain_level?: number | null
+          invoice_delivered?: boolean | null
+          observations?: string | null
+          patient_id?: string | null
+          patient_name: string
+          payment_method?: string | null
+          payment_status?: string | null
+          session_number: number
+          session_value?: number | null
+          therapist: string
+          updated_at?: string | null
+          was_reimbursed?: boolean | null
+        }
+        Update: {
+          commission_percentage?: number | null
+          commission_value?: number | null
+          created_at?: string | null
+          date?: string
+          final_pain_level?: number | null
+          id?: string
+          initial_pain_level?: number | null
+          invoice_delivered?: boolean | null
+          observations?: string | null
+          patient_id?: string | null
+          patient_name?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          session_number?: number
+          session_value?: number | null
+          therapist?: string
+          updated_at?: string | null
+          was_reimbursed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
