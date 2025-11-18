@@ -35,6 +35,8 @@ import {
 } from "lucide-react";
 import { PatientFormModal } from "@/components/PatientFormModal";
 import { SessionModal } from "@/components/SessionModal";
+import { usePatients, useDeletePatient } from "@/hooks/usePatients";
+import { therapistsWithAll } from "@/data/therapists";
 
 interface Patient {
   id: string;
