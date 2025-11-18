@@ -40,6 +40,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
+import { useCreatePatient, useUpdatePatient } from "@/hooks/usePatients";
 
 const patientSchema = z.object({
   // Dados Pessoais
