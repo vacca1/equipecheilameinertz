@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import { therapists } from "@/data/therapists";
+import { useCreateExpense } from "@/hooks/useExpenses";
 
 const expenseSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
@@ -44,10 +45,10 @@ type ExpenseFormData = z.infer<typeof expenseSchema>;
 interface ExpenseModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: ExpenseFormData) => void;
 }
 
-export function ExpenseModal({ open, onOpenChange, onSave }: ExpenseModalProps) {
+export function ExpenseModal({ open, onOpenChange }: ExpenseModalProps) {
+  const createExpense = useCreateExpense();
   const now = new Date();
   const currentDate = now.toISOString().slice(0, 10);
 
@@ -68,8 +69,17 @@ export function ExpenseModal({ open, onOpenChange, onSave }: ExpenseModalProps) 
   const showTherapistField = selectedCategory === "commission";
 
   const onSubmit = (data: ExpenseFormData) => {
-    onSave(data);
-    toast.success("Saída registrada com sucesso!");
+    const expenseData = {
+      date: data.date,
+      description: data.description,
+      category: data.category,
+      value: parseFloat(data.value),
+      responsible: data.responsible || undefined,
+      therapist: data.therapist || undefined,
+      observations: data.observations || undefined,
+    };
+
+    createExpense.mutate(expenseData);
     onOpenChange(false);
     form.reset();
   };

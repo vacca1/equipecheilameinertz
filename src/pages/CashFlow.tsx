@@ -608,13 +608,11 @@ export default function CashFlow() {
       <IncomeModal
         open={incomeModalOpen}
         onOpenChange={setIncomeModalOpen}
-        onSave={(data) => console.log("Entrada salva:", data)}
       />
 
       <ExpenseModal
         open={expenseModalOpen}
         onOpenChange={setExpenseModalOpen}
-        onSave={(data) => console.log("Saída salva:", data)}
       />
     </div>
   );

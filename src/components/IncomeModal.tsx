@@ -28,6 +28,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { therapists, therapistCommissions } from "@/data/therapists";
+import { useCreateIncome } from "@/hooks/useIncomes";
 
 const incomeSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
@@ -45,10 +46,10 @@ type IncomeFormData = z.infer<typeof incomeSchema>;
 interface IncomeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: IncomeFormData) => void;
 }
 
-export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
+export function IncomeModal({ open, onOpenChange }: IncomeModalProps) {
+  const createIncome = useCreateIncome();
   const now = new Date();
   const currentDate = now.toISOString().slice(0, 10);
 
@@ -80,8 +81,23 @@ export function IncomeModal({ open, onOpenChange, onSave }: IncomeModalProps) {
   };
 
   const onSubmit = (data: IncomeFormData) => {
-    onSave(data);
-    toast.success("Entrada registrada com sucesso!");
+    const commissionPercentage = getCommissionPercentage(data.therapist);
+    const commissionValue = parseFloat(data.value) * commissionPercentage / 100;
+
+    const incomeData = {
+      date: data.date,
+      patient_name: data.patient,
+      therapist: data.therapist,
+      value: parseFloat(data.value),
+      commission_percentage: commissionPercentage,
+      commission_value: commissionValue,
+      payment_method: data.paymentMethod || undefined,
+      payment_status: data.paymentStatus,
+      invoice_delivered: data.invoiceDelivered,
+      observations: data.observations || undefined,
+    };
+
+    createIncome.mutate(incomeData);
     onOpenChange(false);
     form.reset();
   };

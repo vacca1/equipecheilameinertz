@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
+import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment } from "@/hooks/useAppointments";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -45,6 +46,10 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState<Date | undefined>();
 
+  const createAppointment = useCreateAppointment();
+  const updateAppointment = useUpdateAppointment();
+  const deleteAppointment = useDeleteAppointment();
+
   const handleSave = () => {
     // Validações
     if (!patient) {
@@ -60,23 +65,56 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       return;
     }
 
-    // Aqui você salvaria no backend
-    toast.success(appointment ? "Agendamento atualizado!" : "Agendamento criado!");
+    const appointmentData = {
+      patient_name: patient,
+      date: format(date, "yyyy-MM-dd"),
+      time,
+      duration: parseInt(duration.replace(/\D/g, "")) || 60,
+      therapist,
+      room: room || undefined,
+      status: status as "scheduled" | "confirmed" | "cancelled" | "completed",
+      is_first_session: isFirstSession,
+      repeat_weekly: repeatWeekly,
+      repeat_until: repeatUntil ? format(repeatUntil, "yyyy-MM-dd") : undefined,
+      notes: notes || undefined,
+    };
+
+    if (appointment?.id) {
+      updateAppointment.mutate({ id: appointment.id, ...appointmentData });
+    } else {
+      createAppointment.mutate(appointmentData);
+    }
+    
     onClose();
   };
 
   const handleBlock = () => {
-    toast.success("Horário bloqueado!");
+    if (!therapist || !date) {
+      toast.error("Selecione fisioterapeuta e data");
+      return;
+    }
+
+    const blockData = {
+      patient_name: "Bloqueio",
+      date: format(date, "yyyy-MM-dd"),
+      time,
+      duration: parseInt(duration.replace(/\D/g, "")) || 60,
+      therapist,
+      status: "blocked" as const,
+      is_first_session: false,
+      repeat_weekly: false,
+      notes: notes || undefined,
+    };
+
+    createAppointment.mutate(blockData);
     onClose();
   };
 
   const handleCancel = () => {
-    if (appointment) {
-      toast.success("Agendamento cancelado!");
-      onClose();
-    } else {
-      onClose();
+    if (appointment?.id) {
+      deleteAppointment.mutate(appointment.id);
     }
+    onClose();
   };
 
   return (
