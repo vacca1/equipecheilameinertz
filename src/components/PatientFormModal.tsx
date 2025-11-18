@@ -89,17 +89,18 @@ interface PatientFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient?: any;
-  onSave: (data: PatientFormData) => void;
 }
 
 export function PatientFormModal({
   open,
   onOpenChange,
   patient,
-  onSave,
 }: PatientFormModalProps) {
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [loadingCep, setLoadingCep] = useState(false);
+  
+  const createPatient = useCreatePatient();
+  const updatePatient = useUpdatePatient();
 
   // Converter dados do paciente para o formato do formulário
   const getDefaultValues = () => {
@@ -219,8 +220,33 @@ export function PatientFormModal({
   };
 
   const onSubmit = (data: PatientFormData) => {
-    onSave(data);
-    toast.success("Paciente salvo com sucesso!");
+    const patientData = {
+      name: data.name,
+      cpf: data.cpf,
+      birth_date: format(data.birthDate, "yyyy-MM-dd"),
+      phone: data.phone1,
+      email: data.email || undefined,
+      address: data.address || undefined,
+      cep: data.cep || undefined,
+      city: data.city || undefined,
+      state: data.state || undefined,
+      main_therapist: data.mainTherapist,
+      substitute_therapist: data.substituteTherapist || undefined,
+      health_plan: data.insurance,
+      diagnosis: data.medicalDiagnosis,
+      medical_report: data.physicalExam || undefined,
+      observations: data.generalNotes || undefined,
+      commission_percentage: data.commissionPercentage ? parseInt(data.commissionPercentage) : 60,
+      invoice_delivery: data.requiresInvoice ? "sim" : "não",
+      status: "active",
+    };
+
+    if (patient?.id) {
+      updatePatient.mutate({ id: patient.id, ...patientData });
+    } else {
+      createPatient.mutate(patientData);
+    }
+    
     onOpenChange(false);
     form.reset();
   };

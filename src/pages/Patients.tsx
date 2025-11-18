@@ -758,10 +758,6 @@ export default function Patients() {
           if (!open) setEditingPatient(null);
         }}
         patient={editingPatient}
-        onSave={(data) => {
-          console.log("Paciente salvo:", data);
-          setEditingPatient(null);
-        }}
       />
 
       {selectedPatient && (
