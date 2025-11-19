@@ -73,6 +73,8 @@ export default function CashFlow() {
   const [customPeriod, setCustomPeriod] = useState(false);
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  const [deleteIncomeId, setDeleteIncomeId] = useState<string | null>(null);
+  const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
 
   // Calculate date range based on period
   const endDate = customEndDate 
@@ -88,6 +90,10 @@ export default function CashFlow() {
   // Fetch data from database
   const { data: incomes = [], isLoading: loadingIncomes } = useIncomes(startDate, endDate, filterTherapist !== "all" ? filterTherapist : undefined);
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(startDate, endDate, filterExpenseCategory !== "all" ? filterExpenseCategory : undefined);
+  
+  // Delete mutations
+  const deleteIncomeMutation = useDeleteIncome();
+  const deleteExpenseMutation = useDeleteExpense();
 
   // Filter incomes
   const filteredIncomes = incomes.filter((income) => {
@@ -456,10 +462,7 @@ export default function CashFlow() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => {
-                            setSelectedIncome(income);
-                            setIncomeModalOpen(true);
-                          }}
+                          onClick={() => setDeleteIncomeId(income.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -529,10 +532,7 @@ export default function CashFlow() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => {
-                            setSelectedExpense(expense);
-                            setExpenseModalOpen(true);
-                          }}
+                          onClick={() => setDeleteExpenseId(expense.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -611,6 +611,58 @@ export default function CashFlow() {
         }}
         expense={selectedExpense}
       />
+
+      {/* AlertDialog para deletar entrada */}
+      <AlertDialog open={!!deleteIncomeId} onOpenChange={(open) => !open && setDeleteIncomeId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta entrada? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteIncomeId) {
+                  deleteIncomeMutation.mutate(deleteIncomeId);
+                  setDeleteIncomeId(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog para deletar despesa */}
+      <AlertDialog open={!!deleteExpenseId} onOpenChange={(open) => !open && setDeleteExpenseId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteExpenseId) {
+                  deleteExpenseMutation.mutate(deleteExpenseId);
+                  setDeleteExpenseId(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
