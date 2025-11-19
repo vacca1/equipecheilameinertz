@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { therapistsWithAll } from "@/data/therapists";
+import { useAppointments } from "@/hooks/useAppointments";
 
 type AppointmentStatus = "confirmed" | "pending" | "blocked" | "cancelled" | "free";
 
@@ -26,197 +27,7 @@ interface Appointment {
   duration: string;
 }
 
-// Mock data com mais exemplos
-const mockAppointments: Record<string, Appointment[]> = {
-  "2024-01-08": [
-    {
-      id: "1",
-      patientName: "Maria Silva",
-      time: "08:00",
-      status: "confirmed",
-      therapist: "Cheila",
-      hasInvoice: true,
-      room: "Sala 1",
-      duration: "1h",
-      notes: "Paciente com dor lombar crônica",
-    },
-    {
-      id: "2",
-      patientName: "João Santos",
-      time: "09:00",
-      status: "pending",
-      therapist: "Ana Falcão",
-      hasInvoice: false,
-      room: "Sala 2",
-      duration: "1h",
-      notes: "Confirmar presença",
-    },
-    {
-      id: "3",
-      patientName: "Carlos Mendes",
-      time: "10:30",
-      status: "confirmed",
-      therapist: "Cheila",
-      hasInvoice: true,
-      room: "Sala 1",
-      duration: "45min",
-    },
-    {
-      id: "4",
-      patientName: "Bloqueio - Reunião",
-      time: "14:00",
-      status: "blocked",
-      therapist: "Cheila",
-      hasInvoice: false,
-      duration: "1h",
-    },
-    {
-      id: "5",
-      patientName: "Fernanda Costa",
-      time: "15:30",
-      status: "confirmed",
-      therapist: "Grazii",
-      hasInvoice: true,
-      room: "Sala 3",
-      duration: "1h",
-      notes: "Primeira sessão - Avaliação",
-    },
-  ],
-  "2024-01-09": [
-    {
-      id: "6",
-      patientName: "Pedro Costa",
-      time: "10:00",
-      status: "confirmed",
-      therapist: "Grazii",
-      hasInvoice: true,
-      room: "Sala 3",
-      duration: "1h",
-      notes: "Sessão de RPG",
-    },
-    {
-      id: "7",
-      patientName: "Ana Lima",
-      time: "11:00",
-      status: "pending",
-      therapist: "Ana Falcão",
-      hasInvoice: false,
-      room: "Sala 2",
-      duration: "1h",
-    },
-    {
-      id: "8",
-      patientName: "Roberto Silva",
-      time: "14:00",
-      status: "cancelled",
-      therapist: "Cheila",
-      hasInvoice: false,
-      room: "Sala 1",
-      duration: "1h",
-      notes: "Paciente cancelou por motivo de saúde",
-    },
-    {
-      id: "9",
-      patientName: "Julia Mendes",
-      time: "16:00",
-      status: "confirmed",
-      therapist: "Ana Falcão",
-      hasInvoice: true,
-      room: "Sala 2",
-      duration: "1h",
-    },
-  ],
-  "2024-01-10": [
-    {
-      id: "10",
-      patientName: "Marcos Paulo",
-      time: "08:30",
-      status: "confirmed",
-      therapist: "Cheila",
-      hasInvoice: true,
-      room: "Sala 1",
-      duration: "1h",
-    },
-    {
-      id: "11",
-      patientName: "Patricia Santos",
-      time: "09:30",
-      status: "pending",
-      therapist: "Grazii",
-      hasInvoice: false,
-      room: "Sala 3",
-      duration: "45min",
-      notes: "Ligar para confirmar",
-    },
-    {
-      id: "12",
-      patientName: "Eduardo Lima",
-      time: "13:00",
-      status: "confirmed",
-      therapist: "Ana Falcão",
-      hasInvoice: true,
-      room: "Sala 2",
-      duration: "1h",
-    },
-  ],
-  "2024-01-11": [
-    {
-      id: "13",
-      patientName: "Claudia Oliveira",
-      time: "10:00",
-      status: "confirmed",
-      therapist: "Cheila",
-      hasInvoice: true,
-      room: "Sala 1",
-      duration: "1h",
-      notes: "Pós-operatório joelho",
-    },
-    {
-      id: "14",
-      patientName: "Ricardo Costa",
-      time: "11:00",
-      status: "confirmed",
-      therapist: "Grazii",
-      hasInvoice: false,
-      room: "Sala 3",
-      duration: "1h",
-    },
-  ],
-  "2024-01-12": [
-    {
-      id: "15",
-      patientName: "Luciana Ferreira",
-      time: "09:00",
-      status: "confirmed",
-      therapist: "Ana Falcão",
-      hasInvoice: true,
-      room: "Sala 2",
-      duration: "1h",
-    },
-    {
-      id: "16",
-      patientName: "Sergio Alves",
-      time: "14:00",
-      status: "pending",
-      therapist: "Cheila",
-      hasInvoice: false,
-      room: "Sala 1",
-      duration: "1h",
-    },
-  ],
-  "2024-01-13": [
-    {
-      id: "17",
-      patientName: "Beatriz Santos",
-      time: "10:00",
-      status: "confirmed",
-      therapist: "Grazii",
-      hasInvoice: true,
-      room: "Sala 3",
-      duration: "1h",
-    },
-  ],
-};
+// Mock data com mais exemplos - REMOVED, using real data from DB
 
 
 
@@ -268,6 +79,37 @@ const Agenda = () => {
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
+
+  // Fetch appointments for the current week
+  const startDate = format(weekStart, "yyyy-MM-dd");
+  const endDate = format(addDays(weekStart, 5), "yyyy-MM-dd");
+  const therapistFilter = selectedTherapist === "TODAS" ? undefined : selectedTherapist;
+  
+  const { data: appointments = [], isLoading } = useAppointments(
+    new Date(startDate),
+    new Date(endDate),
+    therapistFilter
+  );
+
+  // Group appointments by date
+  const mockAppointments: Record<string, Appointment[]> = {};
+  appointments.forEach((apt) => {
+    const dateKey = apt.date;
+    if (!mockAppointments[dateKey]) {
+      mockAppointments[dateKey] = [];
+    }
+    mockAppointments[dateKey].push({
+      id: apt.id,
+      patientName: apt.patient_name,
+      time: apt.time,
+      status: apt.status as AppointmentStatus,
+      therapist: apt.therapist,
+      hasInvoice: false,
+      notes: apt.notes || undefined,
+      room: apt.room || undefined,
+      duration: apt.duration ? `${apt.duration}min` : "60min",
+    });
+  });
 
   const handleCellClick = (day: Date, time: string) => {
     const dateKey = format(day, "yyyy-MM-dd");

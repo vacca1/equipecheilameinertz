@@ -34,164 +34,11 @@ import {
 } from "lucide-react";
 import { IncomeModal } from "@/components/IncomeModal";
 import { ExpenseModal } from "@/components/ExpenseModal";
+import { useIncomes } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
+import { format, subDays } from "date-fns";
 
-interface Income {
-  id: string;
-  date: string;
-  patient: string;
-  therapist: string;
-  value: number;
-  paymentMethod: string;
-  commission: number;
-  invoiceDelivered: boolean;
-  paymentStatus: "paid" | "pending";
-  observations?: string;
-}
-
-interface Expense {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  therapist?: string;
-  value: number;
-  responsible?: string;
-}
-
-interface TherapistClosing {
-  name: string;
-  totalSessions: number;
-  totalGenerated: number;
-  commissionPercentage: number;
-  toReceive: number;
-  alreadyPaid: number;
-  balance: number;
-}
-
-const mockIncomes: Income[] = [
-  {
-    id: "1",
-    date: "15/01/2024",
-    patient: "Maria da Silva Santos",
-    therapist: "Cheila",
-    value: 120,
-    paymentMethod: "PIX",
-    commission: 72,
-    invoiceDelivered: true,
-    paymentStatus: "paid",
-    observations: "Sessão regular"
-  },
-  {
-    id: "2",
-    date: "15/01/2024",
-    patient: "João Pedro Oliveira",
-    therapist: "Ana Falcão",
-    value: 150,
-    paymentMethod: "Dinheiro",
-    commission: 97.5,
-    invoiceDelivered: false,
-    paymentStatus: "pending",
-  },
-  {
-    id: "3",
-    date: "14/01/2024",
-    patient: "Carlos Eduardo Lima",
-    therapist: "Cheila",
-    value: 120,
-    paymentMethod: "Débito",
-    commission: 72,
-    invoiceDelivered: true,
-    paymentStatus: "paid",
-  },
-  {
-    id: "4",
-    date: "14/01/2024",
-    patient: "Ana Carolina Souza",
-    therapist: "Grazii",
-    value: 100,
-    paymentMethod: "PIX",
-    commission: 55,
-    invoiceDelivered: true,
-    paymentStatus: "paid",
-  },
-  {
-    id: "5",
-    date: "13/01/2024",
-    patient: "Patricia Mendes Costa",
-    therapist: "Ana Falcão",
-    value: 150,
-    paymentMethod: "Crédito",
-    commission: 97.5,
-    invoiceDelivered: true,
-    paymentStatus: "paid",
-  },
-];
-
-const mockExpenses: Expense[] = [
-  {
-    id: "1",
-    date: "14/01/2024",
-    description: "Repasse de comissão - Semana 1",
-    category: "Repasse de comissão",
-    therapist: "Cheila",
-    value: 1200,
-    responsible: "Administrador"
-  },
-  {
-    id: "2",
-    date: "12/01/2024",
-    description: "Conta de Luz - Janeiro",
-    category: "Despesas operacionais",
-    value: 450,
-    responsible: "Administrador"
-  },
-  {
-    id: "3",
-    date: "10/01/2024",
-    description: "Material de fisioterapia",
-    category: "Materiais e equipamentos",
-    value: 380,
-    responsible: "Grazii"
-  },
-  {
-    id: "4",
-    date: "09/01/2024",
-    description: "Internet - Janeiro",
-    category: "Despesas operacionais",
-    value: 150,
-    responsible: "Administrador"
-  },
-];
-
-const mockTherapists: TherapistClosing[] = [
-  {
-    name: "Ana Falcão",
-    totalSessions: 28,
-    totalGenerated: 4200,
-    commissionPercentage: 65,
-    toReceive: 2730,
-    alreadyPaid: 2400,
-    balance: 330,
-  },
-  {
-    name: "Cheila",
-    totalSessions: 32,
-    totalGenerated: 3840,
-    commissionPercentage: 60,
-    toReceive: 2304,
-    alreadyPaid: 2100,
-    balance: 204,
-  },
-  {
-    name: "Grazii",
-    totalSessions: 24,
-    totalGenerated: 2400,
-    commissionPercentage: 55,
-    toReceive: 1320,
-    alreadyPaid: 1200,
-    balance: 120,
-  },
-];
+// Mock data removed - using real data from database
 
 export default function CashFlow() {
   const [period, setPeriod] = useState("week");
@@ -202,24 +49,55 @@ export default function CashFlow() {
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
   const [filterExpenseCategory, setFilterExpenseCategory] = useState("all");
 
-  const filteredIncomes = mockIncomes.filter((income) => {
-    const matchesTherapist = filterTherapist === "all" || income.therapist === filterTherapist;
-    const matchesPaymentMethod = filterPaymentMethod === "all" || income.paymentMethod === filterPaymentMethod;
-    const matchesStatus = filterPaymentStatus === "all" || income.paymentStatus === filterPaymentStatus;
-    return matchesTherapist && matchesPaymentMethod && matchesStatus;
+  // Calculate date range based on period
+  const endDate = format(new Date(), "yyyy-MM-dd");
+  const startDate = format(
+    period === "week" ? subDays(new Date(), 7) : subDays(new Date(), 30),
+    "yyyy-MM-dd"
+  );
+
+  // Fetch data from database
+  const { data: incomes = [], isLoading: loadingIncomes } = useIncomes(startDate, endDate, filterTherapist !== "all" ? filterTherapist : undefined);
+  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(startDate, endDate, filterExpenseCategory !== "all" ? filterExpenseCategory : undefined);
+
+  // Filter incomes
+  const filteredIncomes = incomes.filter((income) => {
+    const matchesPaymentMethod = filterPaymentMethod === "all" || income.payment_method === filterPaymentMethod;
+    const matchesStatus = filterPaymentStatus === "all" || income.payment_status === filterPaymentStatus;
+    return matchesPaymentMethod && matchesStatus;
   });
 
-  const filteredExpenses = mockExpenses.filter((expense) => {
-    const matchesCategory = filterExpenseCategory === "all" || expense.category === filterExpenseCategory;
-    return matchesCategory;
-  });
+  // All expenses are already filtered by category in the hook
+  const filteredExpenses = expenses;
 
-  const totalIncome = filteredIncomes.reduce((sum, income) => sum + income.value, 0);
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.value, 0);
+  // Calculate totals
+  const totalIncome = filteredIncomes.reduce((sum, income) => sum + Number(income.value), 0);
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.value), 0);
   const balance = totalIncome - totalExpenses;
   const pendingPayments = filteredIncomes
-    .filter((i) => i.paymentStatus === "pending")
-    .reduce((sum, income) => sum + income.value, 0);
+    .filter((i) => i.payment_status === "pending")
+    .reduce((sum, income) => sum + Number(income.value), 0);
+
+  // Calculate therapist closings
+  const therapistNames = [...new Set(incomes.map(i => i.therapist))];
+  const mockTherapists = therapistNames.map(name => {
+    const therapistIncomes = incomes.filter(i => i.therapist === name);
+    const totalGenerated = therapistIncomes.reduce((sum, i) => sum + Number(i.value), 0);
+    const toReceive = therapistIncomes.reduce((sum, i) => sum + Number(i.commission_value || 0), 0);
+    const alreadyPaid = expenses
+      .filter(e => e.category === "Repasse de comissão" && e.therapist === name)
+      .reduce((sum, e) => sum + Number(e.value), 0);
+    
+    return {
+      name,
+      totalSessions: therapistIncomes.length,
+      totalGenerated,
+      commissionPercentage: therapistIncomes[0]?.commission_percentage || 60,
+      toReceive,
+      alreadyPaid,
+      balance: toReceive - alreadyPaid,
+    };
+  });
 
   const getPaymentMethodLabel = (method: string) => {
     const labels: Record<string, string> = {
@@ -444,16 +322,16 @@ export default function CashFlow() {
               <TableBody>
                 {filteredIncomes.map((income) => (
                   <TableRow key={income.id}>
-                    <TableCell>{income.date}</TableCell>
-                    <TableCell className="font-medium">{income.patient}</TableCell>
+                    <TableCell>{format(new Date(income.date), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="font-medium">{income.patient_name}</TableCell>
                     <TableCell>{income.therapist}</TableCell>
                     <TableCell className="font-semibold text-success">
-                      R$ {income.value.toFixed(2)}
+                      R$ {Number(income.value).toFixed(2)}
                     </TableCell>
-                    <TableCell>{getPaymentMethodLabel(income.paymentMethod)}</TableCell>
-                    <TableCell>R$ {income.commission.toFixed(2)}</TableCell>
+                    <TableCell>{income.payment_method}</TableCell>
+                    <TableCell>R$ {Number(income.commission_value || 0).toFixed(2)}</TableCell>
                     <TableCell>
-                      {income.invoiceDelivered ? (
+                      {income.invoice_delivered ? (
                         <Badge variant="default" className="bg-success">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Sim
@@ -466,7 +344,7 @@ export default function CashFlow() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {income.paymentStatus === "paid" ? (
+                      {income.payment_status === "received" ? (
                         <Badge variant="default" className="bg-success">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Pago
@@ -529,13 +407,13 @@ export default function CashFlow() {
               <TableBody>
                 {filteredExpenses.map((expense) => (
                   <TableRow key={expense.id}>
-                    <TableCell>{expense.date}</TableCell>
+                    <TableCell>{format(new Date(expense.date), "dd/MM/yyyy")}</TableCell>
                     <TableCell className="font-medium">{expense.description}</TableCell>
                     <TableCell>{expense.category}</TableCell>
                     <TableCell>{expense.responsible || "-"}</TableCell>
                     <TableCell>{expense.therapist || "-"}</TableCell>
                     <TableCell className="font-semibold text-destructive">
-                      R$ {expense.value.toFixed(2)}
+                      R$ {Number(expense.value).toFixed(2)}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">

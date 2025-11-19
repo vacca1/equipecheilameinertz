@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
-import { Calendar, Users, DollarSign, FileText, Menu, X, Bot } from "lucide-react";
+import { Calendar, Users, DollarSign, FileText, Menu, X, Bot, LogOut } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Agenda", href: "/", icon: Calendar },
@@ -14,6 +16,7 @@ const navigation = [
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,20 +29,31 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navigation.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                end
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground rounded-xl transition-all hover:bg-muted hover:text-foreground"
-                activeClassName="bg-primary text-primary-foreground shadow-soft hover:bg-primary hover:text-primary-foreground"
-              >
-                <item.icon className="w-4 h-4" />
-                {item.name}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="hidden md:flex items-center gap-2">
+            <nav className="flex items-center gap-1">
+              {navigation.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  end
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground rounded-xl transition-all hover:bg-muted hover:text-foreground"
+                  activeClassName="bg-primary text-primary-foreground shadow-soft hover:bg-primary hover:text-primary-foreground"
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                </NavLink>
+              ))}
+            </nav>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -67,6 +81,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   {item.name}
                 </NavLink>
               ))}
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  signOut();
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-3 px-4 py-3 justify-start"
+              >
+                <LogOut className="w-5 h-5" />
+                Sair
+              </Button>
             </nav>
           </div>
         )}
