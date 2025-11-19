@@ -54,7 +54,7 @@ const patientSchema = z.object({
   state: z.string().optional(),
   number: z.string().optional(),
   complement: z.string().optional(),
-  insurance: z.string().min(1, "Convênio é obrigatório"),
+  insurance: z.string().optional(),
   phone1: z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/, "Telefone inválido"),
   phone2: z.string().optional(),
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
@@ -171,9 +171,11 @@ export function PatientFormModal({
   // Atualizar valores quando o paciente mudar
   React.useEffect(() => {
     if (open) {
-      form.reset(getDefaultValues());
+      const defaultValues = getDefaultValues();
+      form.reset(defaultValues);
+      setUploadedFiles([]);
     }
-  }, [open, patient]);
+  }, [open, patient, form]);
 
   const handleCepBlur = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, "");
@@ -236,7 +238,7 @@ export function PatientFormModal({
       diagnosis: data.medicalDiagnosis,
       medical_report: data.physicalExam || undefined,
       observations: data.generalNotes || undefined,
-      commission_percentage: data.commissionPercentage ? parseInt(data.commissionPercentage) : 60,
+      commission_percentage: data.commissionPercentage ? parseInt(data.commissionPercentage) : undefined,
       invoice_delivery: data.requiresInvoice ? "sim" : "não",
       status: "active",
     };
@@ -325,6 +327,9 @@ export function PatientFormModal({
                               disabled={(date) =>
                                 date > new Date() || date < new Date("1900-01-01")
                               }
+                              captionLayout="dropdown-buttons"
+                              fromYear={1900}
+                              toYear={new Date().getFullYear()}
                               initialFocus
                               className="pointer-events-auto"
                             />
@@ -372,7 +377,7 @@ export function PatientFormModal({
                     name="insurance"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Convênio *</FormLabel>
+                        <FormLabel>Convênio</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -936,7 +941,7 @@ export function PatientFormModal({
                               type="number"
                               min="0"
                               max="100"
-                              placeholder="60"
+                              placeholder="Ex: 60"
                               {...field}
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">

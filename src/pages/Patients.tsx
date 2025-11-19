@@ -585,7 +585,10 @@ export default function Patients() {
         open={patientModalOpen}
         onOpenChange={(open) => {
           setPatientModalOpen(open);
-          if (!open) setEditingPatient(null);
+          if (!open) {
+            setEditingPatient(null);
+            setSelectedPatient(null);
+          }
         }}
         patient={editingPatient}
       />
