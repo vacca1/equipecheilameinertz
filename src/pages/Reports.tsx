@@ -30,25 +30,30 @@ const Reports = () => {
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.value), 0);
   const totalSessions = sessions.length;
   const pendingPayments = incomes.filter(i => i.payment_status === "pending").reduce((sum, i) => sum + Number(i.value), 0);
+  const pendingPaymentsCount = incomes.filter(i => i.payment_status === "pending").length;
+
+  // Calculate occupancy rate (appointments vs total available slots)
+  const totalWorkDays = period === "week" ? 7 : 30;
+  const totalAvailableSlots = totalWorkDays * 8; // 8 slots per day
+  const occupancyRate = totalAvailableSlots > 0 ? Math.round((appointments.length / totalAvailableSlots) * 100) : 0;
 
   // Revenue by therapist
   const revenueDistribution = [...new Set(incomes.map(i => i.therapist))].map(therapist => {
     const value = incomes.filter(i => i.therapist === therapist).reduce((sum, i) => sum + Number(i.value), 0);
-    return { name: therapist, value, percentage: Math.round((value / totalRevenue) * 100) };
-  });
+    return { name: therapist, value, percentage: totalRevenue > 0 ? Math.round((value / totalRevenue) * 100) : 0 };
+  }).filter(item => item.value > 0);
 
   // Payment methods distribution
   const paymentMethods = [...new Set(incomes.map(i => i.payment_method))].map(method => ({
     name: method || "Não informado",
     value: incomes.filter(i => i.payment_method === method).reduce((sum, i) => sum + Number(i.value), 0)
-  }));
+  })).filter(item => item.value > 0);
 
-  // Mock data for monthly trend (would need grouping by month)
-  const monthlyTrend = [
-    { name: "Jan", entradas: totalRevenue * 0.3, saidas: totalExpenses * 0.3 },
-    { name: "Fev", entradas: totalRevenue * 0.35, saidas: totalExpenses * 0.35 },
-    { name: "Mar", entradas: totalRevenue * 0.35, saidas: totalExpenses * 0.35 },
-  ];
+  // Get pending income items for display
+  const pendingIncomes = incomes.filter(i => i.payment_status === "pending").slice(0, 5);
+
+  // Get sessions without invoices
+  const sessionsWithoutInvoice = sessions.filter(s => !s.invoice_delivered).slice(0, 5);
 
   const COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--destructive))"];
 
@@ -111,25 +116,13 @@ const Reports = () => {
             <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
               <DollarSign className="w-6 h-6 text-primary" />
             </div>
-            <div className="flex items-center gap-1 text-success text-sm font-medium">
-              <ArrowUp className="w-4 h-4" />
-              +12%
-            </div>
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Faturamento Total</div>
             <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              R$ 7.524
+              R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <div className="text-xs text-muted-foreground">vs mês anterior</div>
-          </div>
-          {/* Mini sparkline effect */}
-          <div className="absolute bottom-0 right-0 w-32 h-16 opacity-20">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyTrend}>
-                <Line type="monotone" dataKey="entradas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="text-xs text-muted-foreground">{period === "week" ? "esta semana" : "este período"}</div>
           </div>
         </Card>
 
@@ -139,21 +132,11 @@ const Reports = () => {
             <div className="p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl">
               <Calendar className="w-6 h-6 text-success" />
             </div>
-            <div className="flex items-center gap-1 text-success text-sm font-medium">
-              <ArrowUp className="w-4 h-4" />
-              +8%
-            </div>
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Total de Sessões</div>
-            <div className="text-3xl font-bold text-success">127</div>
-            <div className="text-xs text-muted-foreground">este mês</div>
-          </div>
-          {/* Mini bar chart effect */}
-          <div className="absolute bottom-2 right-2 flex items-end gap-1 opacity-20">
-            {[60, 75, 85, 70, 90].map((height, i) => (
-              <div key={i} className="w-3 bg-success rounded-t" style={{ height: `${height}%` }} />
-            ))}
+            <div className="text-3xl font-bold text-success">{totalSessions}</div>
+            <div className="text-xs text-muted-foreground">{period === "week" ? "esta semana" : "este período"}</div>
           </div>
         </Card>
 
@@ -166,7 +149,7 @@ const Reports = () => {
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Taxa de Ocupação</div>
-            <div className="text-3xl font-bold text-warning">78%</div>
+            <div className="text-3xl font-bold text-warning">{occupancyRate}%</div>
             <div className="text-xs text-muted-foreground">da agenda ocupada</div>
           </div>
           {/* Mini donut chart */}
@@ -174,7 +157,7 @@ const Reports = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={[{ value: 78 }, { value: 22 }]}
+                  data={[{ value: occupancyRate }, { value: 100 - occupancyRate }]}
                   cx="50%"
                   cy="50%"
                   innerRadius={20}
@@ -186,23 +169,6 @@ const Reports = () => {
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-          </div>
-        </Card>
-
-        {/* Card 4: Pending Payments */}
-        <Card className="p-6 shadow-soft relative overflow-hidden border-destructive/20">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-destructive/20 to-destructive/5 rounded-xl">
-              <AlertCircle className="w-6 h-6 text-destructive" />
-            </div>
-            <div className="flex items-center gap-1 text-destructive text-sm font-medium">
-              8 pacientes
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Pagamentos Pendentes</div>
-            <div className="text-3xl font-bold text-destructive">R$ 1.240</div>
-            <div className="text-xs text-muted-foreground">requer atenção</div>
           </div>
         </Card>
       </div>
@@ -258,85 +224,62 @@ const Reports = () => {
         </Card>
       </div>
 
-      {/* Monthly Trend */}
-      <Card className="p-6 shadow-soft">
-        <h2 className="text-xl font-bold mb-6">Tendência: Entradas vs Saídas</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={monthlyTrend}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip formatter={(value) => `R$ ${value}`} />
-            <Legend />
-            <Line type="monotone" dataKey="entradas" stroke="hsl(var(--success))" strokeWidth={3} name="Entradas" />
-            <Line type="monotone" dataKey="saidas" stroke="hsl(var(--destructive))" strokeWidth={3} name="Saídas" />
-          </LineChart>
-        </ResponsiveContainer>
-      </Card>
 
       {/* Pendencies */}
-      <Card className="p-6 shadow-soft">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-destructive" />
-          Lista de Pendências
-        </h2>
-        
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-semibold mb-2 text-destructive flex items-center gap-2">
-              <ArrowDown className="w-4 h-4" />
-              Pagamentos Pendentes
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg border border-destructive/10">
-                <div>
-                  <div className="font-medium">João Santos</div>
-                  <div className="text-sm text-muted-foreground">3 dias de atraso</div>
+      {(pendingIncomes.length > 0 || sessionsWithoutInvoice.length > 0) && (
+        <Card className="p-6 shadow-soft">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            Lista de Pendências
+          </h2>
+          
+          <div className="space-y-4">
+            {pendingIncomes.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2 text-destructive flex items-center gap-2">
+                  <ArrowDown className="w-4 h-4" />
+                  Pagamentos Pendentes
+                </h3>
+                <div className="space-y-2">
+                  {pendingIncomes.map((income) => (
+                    <div key={income.id} className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg border border-destructive/10">
+                      <div>
+                        <div className="font-medium">{income.patient_name}</div>
+                        <div className="text-sm text-muted-foreground">{format(new Date(income.date), "dd/MM/yyyy")}</div>
+                      </div>
+                      <div className="font-bold text-destructive">
+                        R$ {Number(income.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="font-bold text-destructive">R$ 120,00</div>
               </div>
-              <div className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg border border-destructive/10">
-                <div>
-                  <div className="font-medium">Ana Costa</div>
-                  <div className="text-sm text-muted-foreground">1 dia de atraso</div>
-                </div>
-                <div className="font-bold text-destructive">R$ 100,00</div>
-              </div>
-            </div>
-          </div>
+            )}
 
-          <div>
-            <h3 className="font-semibold mb-2 text-warning flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Repasses Não Realizados
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 bg-warning/5 rounded-lg border border-warning/10">
-                <div>
-                  <div className="font-medium">Cheila</div>
-                  <div className="text-sm text-muted-foreground">Saldo devedor</div>
+            {sessionsWithoutInvoice.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2 text-primary flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Notas Fiscais Não Emitidas
+                </h3>
+                <div className="space-y-2">
+                  {sessionsWithoutInvoice.map((session) => (
+                    <div key={session.id} className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/10">
+                      <div>
+                        <div className="font-medium">{session.patient_name} - {format(new Date(session.date), "dd/MM/yyyy")}</div>
+                        <div className="text-sm text-muted-foreground">Sessão nº {session.session_number}</div>
+                      </div>
+                      <div className="font-bold text-primary">
+                        R$ {Number(session.session_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="font-bold text-warning">R$ 240,00</div>
               </div>
-            </div>
+            )}
           </div>
-
-          <div>
-            <h3 className="font-semibold mb-2 text-primary flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Notas Fiscais Não Emitidas
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <div>
-                  <div className="font-medium">Maria Silva - 05/01/2024</div>
-                  <div className="text-sm text-muted-foreground">Sessão nº 12</div>
-                </div>
-                <Button size="sm" variant="outline">Registrar NF</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Report Actions */}
       <div className="grid md:grid-cols-3 gap-4">
