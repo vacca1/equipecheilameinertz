@@ -101,6 +101,7 @@ export function PatientFormModal({
 }: PatientFormModalProps) {
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [loadingCep, setLoadingCep] = useState(false);
+  const [birthDateText, setBirthDateText] = useState("");
   
   const createPatient = useCreatePatient();
   const updatePatient = useUpdatePatient();
@@ -177,6 +178,14 @@ export function PatientFormModal({
       const defaultValues = getDefaultValues();
       form.reset(defaultValues);
       setUploadedFiles([]);
+
+      // Inicializar texto da data de nascimento
+      const birthDate = defaultValues.birthDate;
+      if (birthDate instanceof Date && !isNaN(birthDate.getTime())) {
+        setBirthDateText(format(birthDate, "dd/MM/yyyy"));
+      } else {
+        setBirthDateText("");
+      }
     }
   }, [open, patient, form]);
 
@@ -303,41 +312,85 @@ export function PatientFormModal({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Data de Nascimento *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "dd/MM/yyyy")
-                                ) : (
-                                  <span>Selecione a data</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              captionLayout="dropdown-buttons"
-                              fromYear={1900}
-                              toYear={new Date().getFullYear()}
-                              initialFocus
-                              className="pointer-events-auto"
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input
+                              placeholder="dd/mm/aaaa"
+                              value={birthDateText}
+                              onChange={(e) => {
+                                const value = e.target.value;
+
+                                // Máscara simples dd/mm/aaaa
+                                const masked = value
+                                  .replace(/\D/g, "")
+                                  .replace(/(\d{2})(\d)/, "$1/$2")
+                                  .replace(/(\d{2}\/\d{2})(\d)/, "$1/$2")
+                                  .slice(0, 10);
+
+                                setBirthDateText(masked);
+
+                                // Quando completar 10 caracteres, tenta converter para Date
+                                if (masked.length === 10) {
+                                  const [day, month, year] = masked.split("/");
+                                  const parsed = new Date(
+                                    Number(year),
+                                    Number(month) - 1,
+                                    Number(day),
+                                  );
+
+                                  if (!isNaN(parsed.getTime())) {
+                                    field.onChange(parsed);
+                                  } else {
+                                    // Se inválida, zera o campo para deixar o zod reclamar
+                                    field.onChange(undefined as unknown as Date);
+                                  }
+                                }
+                              }}
+                              onBlur={() => {
+                                // Se saiu do campo sem data completa, considera inválido
+                                if (birthDateText.length !== 10) {
+                                  field.onChange(undefined as unknown as Date);
+                                }
+                              }}
                             />
-                          </PopoverContent>
-                        </Popover>
+                          </FormControl>
+
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="px-3 shrink-0"
+                              >
+                                <CalendarIcon className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={(date) => {
+                                  // Quando escolher no calendário, atualiza o Date e o texto
+                                  field.onChange(date as Date);
+                                  if (date) {
+                                    setBirthDateText(format(date, "dd/MM/yyyy"));
+                                  }
+                                }}
+                                disabled={(date) =>
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                captionLayout="dropdown-buttons"
+                                fromYear={1900}
+                                toYear={new Date().getFullYear()}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <FormDescription className="text-xs">
+                          Digite a data ou use o calendário
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
