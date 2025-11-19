@@ -59,6 +59,14 @@ const patientSchema = z.object({
   number: z.string().optional(),
   complement: z.string().optional(),
   insurance: z.string().optional(),
+  discount: z.string().optional(),
+  discountPercentage: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+      const num = parseInt(val);
+      return !isNaN(num) && num >= 1 && num <= 100;
+    }, "Porcentagem deve ser entre 1 e 100"),
   phone2: z.string().optional(),
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
   
@@ -102,6 +110,7 @@ export function PatientFormModal({
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [loadingCep, setLoadingCep] = useState(false);
   const [birthDateText, setBirthDateText] = useState("");
+  const [showDiscountPercentage, setShowDiscountPercentage] = useState(false);
   
   const createPatient = useCreatePatient();
   const updatePatient = useUpdatePatient();
@@ -128,6 +137,8 @@ export function PatientFormModal({
         number: "",
         complement: "",
         insurance: patient.insurance || "",
+        discount: patient.discount || "",
+        discountPercentage: patient.discount_percentage?.toString() || "",
         phone1: patient.phone || "",
         phone2: "",
         email: patient.email || "",
@@ -178,6 +189,9 @@ export function PatientFormModal({
       const defaultValues = getDefaultValues();
       form.reset(defaultValues);
       setUploadedFiles([]);
+      
+      // Controlar visibilidade do campo de porcentagem
+      setShowDiscountPercentage(!!defaultValues.discount);
 
       // Inicializar texto da data de nascimento
       const birthDate = defaultValues.birthDate;
@@ -247,11 +261,14 @@ export function PatientFormModal({
       main_therapist: data.mainTherapist,
       substitute_therapist: data.substituteTherapist || undefined,
       health_plan: data.insurance,
+      discount: data.discount || undefined,
+      discount_percentage: data.discountPercentage ? parseInt(data.discountPercentage) : undefined,
       diagnosis: data.medicalDiagnosis,
       medical_report: data.physicalExam || undefined,
       observations: data.generalNotes || undefined,
       commission_percentage: data.commissionPercentage ? parseInt(data.commissionPercentage) : undefined,
       invoice_delivery: data.requiresInvoice ? "sim" : "não",
+      wheelchair: data.wheelchair,
       status: "active",
     };
 
@@ -441,18 +458,71 @@ export function PatientFormModal({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="SUS">SUS</SelectItem>
-                            <SelectItem value="Unimed">Unimed</SelectItem>
-                            <SelectItem value="Particular">Particular</SelectItem>
-                            <SelectItem value="Amil">Amil</SelectItem>
-                            <SelectItem value="SulAmérica">SulAmérica</SelectItem>
-                            <SelectItem value="Outros">Outros</SelectItem>
+                            <SelectItem value="Fusex">Fusex</SelectItem>
+                            <SelectItem value="Cabergs">Cabergs</SelectItem>
+                            <SelectItem value="Cass">Cass</SelectItem>
+                            <SelectItem value="IBCM">IBCM</SelectItem>
+                            <SelectItem value="AFMU">AFMU</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="discount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Desconto</FormLabel>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            setShowDiscountPercentage(!!value);
+                            if (!value) {
+                              form.setValue("discountPercentage", "");
+                            }
+                          }} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o desconto" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Angelus">Angelus</SelectItem>
+                            <SelectItem value="Unimed">Unimed</SelectItem>
+                            <SelectItem value="Vida Card">Vida Card</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {showDiscountPercentage && (
+                    <FormField
+                      control={form.control}
+                      name="discountPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Porcentagem de Desconto (%)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="100"
+                              placeholder="Ex: 10"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}

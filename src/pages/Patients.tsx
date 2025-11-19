@@ -605,6 +605,9 @@ export default function Patients() {
               ? Math.max(...patientSessions.map((s) => s.session_number))
               : 0
           }
+          patientSessionValue={selectedPatient.session_value}
+          patientDiscount={selectedPatient.discount}
+          patientDiscountPercentage={selectedPatient.discount_percentage}
         />
       )}
       
