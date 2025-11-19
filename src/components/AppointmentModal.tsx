@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
+import { rooms } from "@/data/rooms";
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment } from "@/hooks/useAppointments";
 import { usePatients } from "@/hooks/usePatients";
 
@@ -25,7 +26,6 @@ interface AppointmentModalProps {
   prefilledTime?: string;
 }
 
-const rooms = ["Sala 1", "Sala 2", "Sala 3"];
 const durations = ["30min", "45min", "1h", "1h15", "1h30"];
 const timeSlots = Array.from({ length: 50 }, (_, i) => {
   const totalMinutes = 7.5 * 60 + i * 15;

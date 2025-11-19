@@ -41,6 +41,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
+import { rooms } from "@/data/rooms";
 import { useCreatePatient, useUpdatePatient } from "@/hooks/usePatients";
 
 const patientSchema = z.object({
@@ -49,7 +50,7 @@ const patientSchema = z.object({
   birthDate: z.date({ required_error: "Data de nascimento é obrigatória" }),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF inválido"),
   phone1: z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/, "Telefone inválido"),
-  wheelchair: z.boolean(),
+  wheelchair: z.boolean().optional().default(false),
   rg: z.string().optional(),
   cep: z.string().optional(),
   address: z.string().optional(),
@@ -547,7 +548,7 @@ export function PatientFormModal({
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 md:col-span-2">
                         <div className="space-y-0.5">
                           <FormLabel className="text-base">
-                            Cadeirante *
+                            Cadeirante
                           </FormLabel>
                           <FormDescription>
                             Indica se o paciente utiliza cadeira de rodas
@@ -810,13 +811,14 @@ export function PatientFormModal({
                               <SelectValue placeholder="Selecione a sala" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="nenhuma">Nenhuma preferência</SelectItem>
-                            <SelectItem value="sala1">Sala 1</SelectItem>
-                            <SelectItem value="sala2">Sala 2</SelectItem>
-                            <SelectItem value="sala3">Sala 3</SelectItem>
-                            <SelectItem value="sala4">Sala 4</SelectItem>
-                          </SelectContent>
+                      <SelectContent>
+                        <SelectItem value="nenhuma">Nenhuma preferência</SelectItem>
+                        {rooms.map((room) => (
+                          <SelectItem key={room} value={room.toLowerCase().replace(" ", "")}>
+                            {room}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
