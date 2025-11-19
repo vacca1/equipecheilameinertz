@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,7 +29,17 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { therapists, therapistCommissions } from "@/data/therapists";
-import { useCreateIncome } from "@/hooks/useIncomes";
+import { useCreateIncome, useUpdateIncome, useDeleteIncome, Income } from "@/hooks/useIncomes";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const incomeSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
@@ -46,25 +57,58 @@ type IncomeFormData = z.infer<typeof incomeSchema>;
 interface IncomeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  income?: Income;
 }
 
-export function IncomeModal({ open, onOpenChange }: IncomeModalProps) {
+export function IncomeModal({ open, onOpenChange, income }: IncomeModalProps) {
   const createIncome = useCreateIncome();
+  const updateIncome = useUpdateIncome();
+  const deleteIncome = useDeleteIncome();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  const isEditMode = !!income;
   const now = new Date();
   const currentDate = now.toISOString().slice(0, 10);
 
   const form = useForm<IncomeFormData>({
     resolver: zodResolver(incomeSchema),
-    defaultValues: {
+    defaultValues: income ? {
+      date: income.date,
+      patient: income.patient_name,
+      therapist: income.therapist,
+      value: income.value.toString(),
+      paymentMethod: income.payment_method || "",
+      invoiceDelivered: income.invoice_delivered || false,
+      paymentStatus: income.payment_status || "received",
+      observations: income.observations || "",
+    } : {
       date: currentDate,
       patient: "",
       therapist: "",
       value: "",
       paymentMethod: "",
       invoiceDelivered: false,
-      paymentStatus: "paid",
+      paymentStatus: "received",
       observations: "",
     },
+  });
+
+  // Update form when income changes
+  useState(() => {
+    if (income && open) {
+      form.reset({
+        date: income.date,
+        patient: income.patient_name,
+        therapist: income.therapist,
+        value: income.value.toString(),
+        paymentMethod: income.payment_method || "",
+        invoiceDelivered: income.invoice_delivered || false,
+        paymentStatus: income.payment_status || "received",
+        observations: income.observations || "",
+      });
+    } else if (!open) {
+      form.reset();
+    }
   });
 
   const selectedTherapist = form.watch("therapist");
@@ -97,17 +141,34 @@ export function IncomeModal({ open, onOpenChange }: IncomeModalProps) {
       observations: data.observations || undefined,
     };
 
-    createIncome.mutate(incomeData);
+    if (isEditMode && income) {
+      updateIncome.mutate({ id: income.id, ...incomeData });
+    } else {
+      createIncome.mutate(incomeData);
+    }
+    
     onOpenChange(false);
     form.reset();
   };
 
+  const handleDelete = () => {
+    if (income) {
+      deleteIncome.mutate(income.id);
+      onOpenChange(false);
+      setShowDeleteDialog(false);
+      form.reset();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle className="text-xl sm:text-2xl">Adicionar Entrada</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl">
+              {isEditMode ? "Editar Entrada" : "Adicionar Entrada"}
+            </DialogTitle>
+          </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -296,6 +357,16 @@ export function IncomeModal({ open, onOpenChange }: IncomeModalProps) {
             />
 
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+              {isEditMode && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="w-full sm:w-auto"
+                >
+                  Excluir
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -308,12 +379,30 @@ export function IncomeModal({ open, onOpenChange }: IncomeModalProps) {
                 Cancelar
               </Button>
               <Button type="submit" className="w-full sm:w-auto">
-                Salvar Entrada
+                {isEditMode ? "Atualizar" : "Salvar Entrada"}
               </Button>
             </div>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir esta entrada? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

@@ -177,6 +177,44 @@ export type Database = {
           },
         ]
       }
+      patient_files: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_type: string | null
+          file_url: string
+          id: string
+          patient_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_type?: string | null
+          file_url: string
+          id?: string
+          patient_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          patient_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_files_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           address: string | null
