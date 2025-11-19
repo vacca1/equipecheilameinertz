@@ -20,6 +20,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Search,
   Plus,
   User,
@@ -35,215 +45,14 @@ import {
 } from "lucide-react";
 import { PatientFormModal } from "@/components/PatientFormModal";
 import { SessionModal } from "@/components/SessionModal";
-import { usePatients, useDeletePatient } from "@/hooks/usePatients";
+import { usePatients, useDeletePatient, Patient } from "@/hooks/usePatients";
+import { useSessions } from "@/hooks/useSessions";
 import { therapistsWithAll } from "@/data/therapists";
-
-interface Patient {
-  id: string;
-  name: string;
-  cpf: string;
-  phone: string;
-  insurance: string;
-  therapist: string;
-  nextAppointment?: string;
-  status: "active" | "inactive";
-  birthDate: string;
-  email: string;
-  mainTherapist: string;
-  commissionPercentage: string;
-}
-
-interface Session {
-  id: string;
-  patientId: string;
-  date: string;
-  sessionNumber: number;
-  therapist: string;
-  value: number;
-  paymentStatus: "paid" | "pending";
-  invoiceDelivered: boolean;
-  observations: string;
-  paymentMethod: string;
-}
-
-const mockPatients: Patient[] = [
-  {
-    id: "1",
-    name: "Maria da Silva Santos",
-    cpf: "123.456.789-00",
-    phone: "(11) 98765-4321",
-    insurance: "Unimed",
-    therapist: "Cheila",
-    nextAppointment: "Segunda 10:00",
-    status: "active",
-    birthDate: "15/03/1975",
-    email: "maria.silva@email.com",
-    mainTherapist: "cheila",
-    commissionPercentage: "60",
-  },
-  {
-    id: "2",
-    name: "João Pedro Oliveira",
-    cpf: "987.654.321-00",
-    phone: "(11) 91234-5678",
-    insurance: "Particular",
-    therapist: "Ana Falcão",
-    nextAppointment: "Terça 14:30",
-    status: "active",
-    birthDate: "22/07/1988",
-    email: "joao.pedro@email.com",
-    mainTherapist: "ana",
-    commissionPercentage: "65",
-  },
-  {
-    id: "3",
-    name: "Ana Carolina Souza",
-    cpf: "456.789.123-00",
-    phone: "(11) 99876-5432",
-    insurance: "SUS",
-    therapist: "Grazii",
-    status: "active",
-    birthDate: "08/11/1992",
-    email: "ana.souza@email.com",
-    mainTherapist: "grazii",
-    commissionPercentage: "55",
-  },
-  {
-    id: "4",
-    name: "Carlos Eduardo Lima",
-    cpf: "321.654.987-00",
-    phone: "(11) 97654-3210",
-    insurance: "Amil",
-    therapist: "Cheila",
-    nextAppointment: "Quarta 09:00",
-    status: "active",
-    birthDate: "30/01/1980",
-    email: "carlos.lima@email.com",
-    mainTherapist: "cheila",
-    commissionPercentage: "60",
-  },
-  {
-    id: "5",
-    name: "Patricia Mendes Costa",
-    cpf: "789.123.456-00",
-    phone: "(11) 96543-2109",
-    insurance: "Particular",
-    therapist: "Ana Falcão",
-    status: "active",
-    birthDate: "19/05/1995",
-    email: "patricia.mendes@email.com",
-    mainTherapist: "ana",
-    commissionPercentage: "65",
-  },
-  {
-    id: "6",
-    name: "Roberto Alves Pereira",
-    cpf: "147.258.369-00",
-    phone: "(11) 95432-1098",
-    insurance: "Unimed",
-    therapist: "Grazii",
-    nextAppointment: "Quinta 16:00",
-    status: "active",
-    birthDate: "12/09/1970",
-    email: "roberto.alves@email.com",
-    mainTherapist: "grazii",
-    commissionPercentage: "55",
-  },
-  {
-    id: "7",
-    name: "Fernanda Santos Rodrigues",
-    cpf: "258.369.147-00",
-    phone: "(11) 94321-0987",
-    insurance: "SulAmérica",
-    therapist: "Cheila",
-    status: "inactive",
-    birthDate: "25/12/1985",
-    email: "fernanda.santos@email.com",
-    mainTherapist: "cheila",
-    commissionPercentage: "60",
-  },
-  {
-    id: "8",
-    name: "Lucas Gabriel Martins",
-    cpf: "369.147.258-00",
-    phone: "(11) 93210-9876",
-    insurance: "Particular",
-    therapist: "Ana Falcão",
-    nextAppointment: "Sexta 11:30",
-    status: "active",
-    birthDate: "07/06/1998",
-    email: "lucas.martins@email.com",
-    mainTherapist: "ana",
-    commissionPercentage: "65",
-  },
-];
-
-const mockSessions: Session[] = [
-  {
-    id: "1",
-    patientId: "1",
-    date: "15/01/2024",
-    sessionNumber: 15,
-    therapist: "Cheila",
-    value: 120,
-    paymentStatus: "paid",
-    invoiceDelivered: true,
-    observations: "Paciente apresentou melhora significativa na mobilidade",
-    paymentMethod: "PIX",
-  },
-  {
-    id: "2",
-    patientId: "1",
-    date: "10/01/2024",
-    sessionNumber: 14,
-    therapist: "Cheila",
-    value: 120,
-    paymentStatus: "paid",
-    invoiceDelivered: true,
-    observations: "Continuidade do tratamento. Redução do quadro álgico.",
-    paymentMethod: "Débito",
-  },
-  {
-    id: "3",
-    patientId: "1",
-    date: "08/01/2024",
-    sessionNumber: 13,
-    therapist: "Cheila",
-    value: 120,
-    paymentStatus: "pending",
-    invoiceDelivered: false,
-    observations: "Paciente relatou melhora nas dores lombares",
-    paymentMethod: "Boleto",
-  },
-  {
-    id: "4",
-    patientId: "1",
-    date: "05/01/2024",
-    sessionNumber: 12,
-    therapist: "Cheila",
-    value: 120,
-    paymentStatus: "paid",
-    invoiceDelivered: true,
-    observations: "Exercícios de fortalecimento realizados com sucesso",
-    paymentMethod: "PIX",
-  },
-  {
-    id: "5",
-    patientId: "1",
-    date: "03/01/2024",
-    sessionNumber: 11,
-    therapist: "Cheila",
-    value: 120,
-    paymentStatus: "paid",
-    invoiceDelivered: false,
-    observations: "Aplicação de técnicas manuais e eletroterapia",
-    paymentMethod: "Dinheiro",
-  },
-];
+import { format } from "date-fns";
 
 export default function Patients() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(mockPatients[0]);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientModalOpen, setPatientModalOpen] = useState(false);
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
@@ -253,20 +62,25 @@ export default function Patients() {
   const [sortBy, setSortBy] = useState("alphabetical");
   const [sessionFilterTherapist, setSessionFilterTherapist] = useState("all");
   const [sessionFilterPayment, setSessionFilterPayment] = useState("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const filteredPatients = mockPatients
+  // Fetch real data from database
+  const { data: patients = [], isLoading } = usePatients(searchTerm, filterTherapist);
+  const { data: allSessions = [] } = useSessions();
+  const deletePatient = useDeletePatient();
+
+  // Set first patient as selected when data loads
+  if (!selectedPatient && patients.length > 0) {
+    setSelectedPatient(patients[0]);
+  }
+
+  const filteredPatients = patients
     .filter((patient) => {
-      const matchesSearch =
-        patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.cpf.includes(searchTerm) ||
-        patient.phone.includes(searchTerm);
-      const matchesTherapist =
-        filterTherapist === "all" || patient.therapist === filterTherapist;
       const matchesInsurance =
-        filterInsurance === "all" || patient.insurance === filterInsurance;
+        filterInsurance === "all" || patient.health_plan === filterInsurance;
       const matchesStatus =
         filterStatus === "all" || patient.status === filterStatus;
-      return matchesSearch && matchesTherapist && matchesInsurance && matchesStatus;
+      return matchesInsurance && matchesStatus;
     })
     .sort((a, b) => {
       if (sortBy === "alphabetical") {
@@ -276,24 +90,36 @@ export default function Patients() {
     });
 
   const patientSessions = selectedPatient
-    ? mockSessions
-        .filter((s) => s.patientId === selectedPatient.id)
+    ? allSessions
+        .filter((s) => s.patient_id === selectedPatient.id)
         .filter((s) => {
           const matchesTherapist =
             sessionFilterTherapist === "all" || s.therapist === sessionFilterTherapist;
           const matchesPayment =
-            sessionFilterPayment === "all" || s.paymentStatus === sessionFilterPayment;
+            sessionFilterPayment === "all" || s.payment_status === sessionFilterPayment;
           return matchesTherapist && matchesPayment;
         })
     : [];
 
   const totalSessions = patientSessions.length;
   const totalPaid = patientSessions
-    .filter((s) => s.paymentStatus === "paid")
-    .reduce((sum, s) => sum + s.value, 0);
+    .filter((s) => s.payment_status === "received")
+    .reduce((sum, s) => sum + (s.session_value || 0), 0);
   const totalPending = patientSessions
-    .filter((s) => s.paymentStatus === "pending")
-    .reduce((sum, s) => sum + s.value, 0);
+    .filter((s) => s.payment_status === "pending")
+    .reduce((sum, s) => sum + (s.session_value || 0), 0);
+
+  const handleDeletePatient = () => {
+    if (!selectedPatient) return;
+    
+    deletePatient.mutate(selectedPatient.id, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false);
+        // Select first patient or null if no patients left
+        setSelectedPatient(filteredPatients[0] || null);
+      },
+    });
+  };
 
   const getInitials = (name: string) => {
     const parts = name.split(" ");
@@ -442,15 +268,9 @@ export default function Patients() {
                           }`}
                         />
                       </div>
-                      {patient.nextAppointment && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                          <Calendar className="h-3 w-3" />
-                          {patient.nextAppointment}
-                        </p>
-                      )}
                       <div className="flex gap-1 mt-1">
                         <Badge variant="secondary" className="text-xs">
-                          {patient.insurance}
+                          {patient.health_plan || "Não informado"}
                         </Badge>
                       </div>
                     </div>
@@ -471,20 +291,30 @@ export default function Patients() {
                 <div>
                   <CardTitle className="text-2xl">{selectedPatient.name}</CardTitle>
                   <p className="text-muted-foreground mt-1">
-                    {selectedPatient.insurance} • {selectedPatient.therapist}
+                    {selectedPatient.health_plan || "Não informado"} • {selectedPatient.main_therapist}
                   </p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setEditingPatient(selectedPatient);
-                    setPatientModalOpen(true);
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setEditingPatient(selectedPatient);
+                      setPatientModalOpen(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => setDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </Button>
+                </div>
               </div>
             </CardHeader>
 
@@ -514,23 +344,23 @@ export default function Patients() {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Data de Nascimento</label>
-                      <p className="mt-1">{selectedPatient.birthDate}</p>
+                      <p className="mt-1">{selectedPatient.birth_date ? format(new Date(selectedPatient.birth_date), 'dd/MM/yyyy') : "Não informado"}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">CPF</label>
-                      <p className="mt-1">{selectedPatient.cpf}</p>
+                      <p className="mt-1">{selectedPatient.cpf || "Não informado"}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Telefone</label>
-                      <p className="mt-1">{selectedPatient.phone}</p>
+                      <p className="mt-1">{selectedPatient.phone || "Não informado"}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">E-mail</label>
-                      <p className="mt-1">{selectedPatient.email}</p>
+                      <p className="mt-1">{selectedPatient.email || "Não informado"}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Convênio</label>
-                      <p className="mt-1">{selectedPatient.insurance}</p>
+                      <p className="mt-1">{selectedPatient.health_plan || "Não informado"}</p>
                     </div>
                   </div>
                 </TabsContent>
@@ -545,11 +375,11 @@ export default function Patients() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Fisioterapeuta Padrão</label>
-                      <p className="mt-1">{selectedPatient.therapist}</p>
+                      <p className="mt-1">{selectedPatient.main_therapist}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Porcentagem de Repasse</label>
-                      <p className="mt-1">{selectedPatient.commissionPercentage}%</p>
+                      <p className="mt-1">{selectedPatient.commission_percentage || 0}%</p>
                     </div>
                   </div>
                 </TabsContent>
@@ -576,7 +406,7 @@ export default function Patients() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-sm font-medium">
-                          {selectedPatient.nextAppointment || "Não agendada"}
+                          Não agendada
                         </div>
                       </CardContent>
                     </Card>
@@ -667,14 +497,14 @@ export default function Patients() {
                       <TableBody>
                         {patientSessions.map((session) => (
                           <TableRow key={session.id}>
-                            <TableCell>{session.date}</TableCell>
+                            <TableCell>{session.date ? format(new Date(session.date), 'dd/MM/yyyy') : ""}</TableCell>
                             <TableCell className="font-medium">
-                              #{session.sessionNumber}
+                              #{session.session_number}
                             </TableCell>
                             <TableCell>{session.therapist}</TableCell>
-                            <TableCell>R$ {session.value.toFixed(2)}</TableCell>
+                            <TableCell>R$ {(session.session_value || 0).toFixed(2)}</TableCell>
                             <TableCell>
-                              {session.paymentStatus === "paid" ? (
+                              {session.payment_status === "received" ? (
                                 <Badge variant="default" className="bg-success">
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                   Pago
@@ -687,10 +517,10 @@ export default function Patients() {
                               )}
                             </TableCell>
                             <TableCell>
-                              {getPaymentMethodLabel(session.paymentMethod)}
+                              {getPaymentMethodLabel(session.payment_method || "")}
                             </TableCell>
                             <TableCell>
-                              {session.invoiceDelivered ? (
+                              {session.invoice_delivered ? (
                                 <Badge variant="default" className="bg-success">
                                   <FileText className="h-3 w-3 mr-1" />
                                   Sim
@@ -705,9 +535,9 @@ export default function Patients() {
                             <TableCell>
                               <span
                                 className="text-sm text-muted-foreground cursor-help"
-                                title={session.observations}
+                                title={session.observations || ""}
                               >
-                                {session.observations.substring(0, 30)}...
+                                {(session.observations || "").substring(0, 30)}{session.observations && session.observations.length > 30 ? "..." : ""}
                               </span>
                             </TableCell>
                             <TableCell>
@@ -766,14 +596,39 @@ export default function Patients() {
           onOpenChange={setSessionModalOpen}
           patientId={selectedPatient.id}
           patientName={selectedPatient.name}
-          defaultTherapist={selectedPatient.mainTherapist}
+          defaultTherapist={selectedPatient.main_therapist}
           lastSessionNumber={
             patientSessions.length > 0
-              ? Math.max(...patientSessions.map((s) => s.sessionNumber))
+              ? Math.max(...patientSessions.map((s) => s.session_number))
               : 0
           }
         />
       )}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja excluir este paciente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir o paciente <strong>{selectedPatient?.name}</strong>.
+              <br /><br />
+              <span className="text-destructive font-semibold">⚠️ Esta ação não pode ser desfeita!</span>
+              <br /><br />
+              Todos os dados do paciente, incluindo sessões, receitas e agendamentos relacionados podem ser afetados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePatient}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
