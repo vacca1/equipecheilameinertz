@@ -18,11 +18,15 @@ const Reports = () => {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
 
   // Calculate date range
-  const endDate = format(new Date(), "yyyy-MM-dd");
-  const startDate = format(
-    period === "week" ? subDays(new Date(), 7) : subMonths(new Date(), 3),
-    "yyyy-MM-dd"
-  );
+  const endDate = customEndDate 
+    ? format(customEndDate, "yyyy-MM-dd")
+    : format(new Date(), "yyyy-MM-dd");
+  const startDate = customStartDate
+    ? format(customStartDate, "yyyy-MM-dd")
+    : format(
+        period === "week" ? subDays(new Date(), 7) : subMonths(new Date(), 3),
+        "yyyy-MM-dd"
+      );
 
   // Fetch real data
   const { data: incomes = [] } = useIncomes(startDate, endDate);
@@ -100,16 +104,112 @@ const Reports = () => {
             <Button
               variant={period === "custom" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setPeriod("custom")}
               className="flex-1 sm:flex-none"
             >
-              Personalizado
+              <Popover>
+                <PopoverTrigger asChild>
+                  <span className="flex items-center">
+                    <CalendarIcon className="w-4 h-4 mr-1" />
+                    Personalizado
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="p-4 space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Data Inicial</label>
+                      <CalendarComponent
+                        mode="single"
+                        selected={customStartDate}
+                        onSelect={(date) => {
+                          setCustomStartDate(date);
+                          if (date) setPeriod("custom");
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Data Final</label>
+                      <CalendarComponent
+                        mode="single"
+                        selected={customEndDate}
+                        onSelect={(date) => {
+                          setCustomEndDate(date);
+                          if (date && customStartDate) setPeriod("custom");
+                        }}
+                        className="pointer-events-auto"
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </Button>
           </div>
-          <Button className="shadow-soft w-full sm:w-auto">
-            <Download className="w-4 h-4 mr-2" />
-            Exportar PDF
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="shadow-soft w-full sm:w-auto"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-4" align="end">
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm mb-3">Selecione o tipo de relatório</h4>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    const data = {
+                      totalRevenue,
+                      totalSessions,
+                      occupancyRate,
+                      pendingPayments,
+                      revenueDistribution
+                    };
+                    generateReportPDF(data, "semanal");
+                  }}
+                >
+                  Relatório Semanal
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    const data = {
+                      totalRevenue,
+                      totalSessions,
+                      occupancyRate,
+                      pendingPayments,
+                      revenueDistribution
+                    };
+                    generateReportPDF(data, "mensal");
+                  }}
+                >
+                  Relatório Mensal
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    const data = {
+                      totalRevenue,
+                      totalSessions,
+                      occupancyRate,
+                      pendingPayments,
+                      revenueDistribution
+                    };
+                    generateReportPDF(data, "semanal");
+                  }}
+                >
+                  Relatório Geral
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

@@ -614,13 +614,3 @@ export default function CashFlow() {
     </div>
   );
 }
-        onOpenChange={setIncomeModalOpen}
-      />
-
-      <ExpenseModal
-        open={expenseModalOpen}
-        onOpenChange={setExpenseModalOpen}
-      />
-    </div>
-  );
-}
