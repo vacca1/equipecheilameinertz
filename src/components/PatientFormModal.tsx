@@ -12,6 +12,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -535,6 +536,29 @@ export function PatientFormModal({
                           <Input type="email" placeholder="email@exemplo.com" {...field} />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="wheelchair"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 md:col-span-2">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Cadeirante *
+                          </FormLabel>
+                          <FormDescription>
+                            Indica se o paciente utiliza cadeira de rodas
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
                       </FormItem>
                     )}
                   />
