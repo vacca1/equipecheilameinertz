@@ -226,6 +226,7 @@ export type Database = {
           created_at: string | null
           days_per_week: number | null
           diagnosis: string | null
+          discount_percentage: number | null
           email: string | null
           emergency_contact: string | null
           health_plan: string | null
@@ -257,6 +258,7 @@ export type Database = {
           created_at?: string | null
           days_per_week?: number | null
           diagnosis?: string | null
+          discount_percentage?: number | null
           email?: string | null
           emergency_contact?: string | null
           health_plan?: string | null
@@ -288,6 +290,7 @@ export type Database = {
           created_at?: string | null
           days_per_week?: number | null
           diagnosis?: string | null
+          discount_percentage?: number | null
           email?: string | null
           emergency_contact?: string | null
           health_plan?: string | null

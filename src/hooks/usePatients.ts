@@ -17,6 +17,8 @@ export interface Patient {
   main_therapist: string;
   substitute_therapist?: string;
   health_plan?: string;
+  discount?: string;
+  discount_percentage?: number;
   plan_number?: string;
   medical_authorization?: string;
   diagnosis?: string;
@@ -29,6 +31,7 @@ export interface Patient {
   invoice_delivery?: string;
   days_per_week?: number;
   status?: string;
+  wheelchair?: boolean;
   created_at?: string;
   updated_at?: string;
 }

@@ -54,6 +54,9 @@ interface SessionModalProps {
   patientName: string;
   defaultTherapist?: string;
   lastSessionNumber: number;
+  patientSessionValue?: number;
+  patientDiscount?: string;
+  patientDiscountPercentage?: number;
 }
 
 export function SessionModal({
@@ -63,9 +66,22 @@ export function SessionModal({
   patientName,
   defaultTherapist = "",
   lastSessionNumber,
+  patientSessionValue,
+  patientDiscount,
+  patientDiscountPercentage,
 }: SessionModalProps) {
   const now = new Date();
   const currentDateTime = now.toISOString().slice(0, 16);
+
+  // Calcular valor sugerido com desconto
+  const calculateDiscountedValue = () => {
+    if (!patientSessionValue) return "";
+    if (!patientDiscountPercentage || patientDiscountPercentage === 0) {
+      return patientSessionValue.toFixed(2);
+    }
+    const discountedValue = patientSessionValue * (1 - patientDiscountPercentage / 100);
+    return discountedValue.toFixed(2);
+  };
 
   const form = useForm<SessionFormData>({
     resolver: zodResolver(sessionSchema),
@@ -77,7 +93,7 @@ export function SessionModal({
       painBefore: 5,
       painAfter: 5,
       observations: "",
-      value: "",
+      value: calculateDiscountedValue(),
       paymentMethod: "",
       invoiceDelivered: false,
       paymentStatus: "paid",
@@ -301,6 +317,17 @@ export function SessionModal({
                     </FormItem>
                   )}
                 />
+
+                {patientDiscount && patientDiscountPercentage && (
+                  <div className="col-span-full text-sm bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                    <strong className="text-blue-900 dark:text-blue-100">Desconto aplicado:</strong> {patientDiscount} ({patientDiscountPercentage}%)
+                    <br />
+                    <span className="text-xs text-blue-700 dark:text-blue-300">
+                      Valor original: R$ {patientSessionValue?.toFixed(2)} → 
+                      Valor com desconto: R$ {calculateDiscountedValue()}
+                    </span>
+                  </div>
+                )}
 
                 <FormField
                   control={form.control}
