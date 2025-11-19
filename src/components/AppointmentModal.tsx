@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar as CalendarIcon, Clock, User, MapPin, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,6 +52,40 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const updateAppointment = useUpdateAppointment();
   const deleteAppointment = useDeleteAppointment();
   const { data: patientsData = [] } = usePatients();
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (appointment) {
+      // Edição de agendamento existente
+      setPatient(appointment.patientName || "");
+      // Data e horário: usar o slot clicado se veio da agenda
+      setDate(prefilledDate || appointment.date || new Date());
+      setTime(prefilledTime || appointment.time || "08:00");
+      // Fisioterapeuta: priorizar o que está no agendamento
+      setTherapist(appointment.therapist || prefilledTherapist || "");
+      setDuration(appointment.duration || "1h");
+      setRoom(appointment.room || "");
+      setStatus(appointment.status || "pending");
+      setNotes(appointment.notes || "");
+      setIsFirstSession(appointment.isFirstSession || false);
+      setRepeatWeekly(false);
+      setRepeatUntil(undefined);
+    } else {
+      // Novo agendamento (slot vazio ou botão "Novo Agendamento")
+      setPatient("");
+      setDate(prefilledDate || new Date());
+      setTime(prefilledTime || "08:00");
+      setTherapist(prefilledTherapist || "");
+      setDuration("1h");
+      setRoom("");
+      setStatus("pending");
+      setNotes("");
+      setIsFirstSession(false);
+      setRepeatWeekly(false);
+      setRepeatUntil(undefined);
+    }
+  }, [open, appointment, prefilledDate, prefilledTime, prefilledTherapist]);
 
   const handleSave = () => {
     // Validações

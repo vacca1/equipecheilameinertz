@@ -115,15 +115,13 @@ const Agenda = () => {
     const dateKey = format(day, "yyyy-MM-dd");
     const appointment = mockAppointments[dateKey]?.find((a) => a.time === time);
 
-    if (appointment) {
-      setSelectedAppointment(appointment);
-      setSelectedDate(undefined);
-      setSelectedTime(undefined);
-    } else {
-      setSelectedAppointment(null);
-      setSelectedDate(day);
-      setSelectedTime(time);
-    }
+    // Se tiver agendamento, envia o objeto; senão, null
+    setSelectedAppointment(appointment || null);
+
+    // Sempre guarda a data e horário do slot clicado
+    setSelectedDate(day);
+    setSelectedTime(time);
+
     setModalOpen(true);
   };
 
