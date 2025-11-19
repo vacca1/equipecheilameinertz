@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment } from "@/hooks/useAppointments";
+import { usePatients } from "@/hooks/usePatients";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -49,6 +50,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const createAppointment = useCreateAppointment();
   const updateAppointment = useUpdateAppointment();
   const deleteAppointment = useDeleteAppointment();
+  const { data: patientsData = [] } = usePatients();
 
   const handleSave = () => {
     // Validações
@@ -129,24 +131,25 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
         <div className="grid gap-4 sm:gap-6 py-3 sm:py-4">
           {/* Paciente */}
           <div className="grid gap-2">
-            <Label htmlFor="patient" className="flex items-center gap-2">
+            <Label className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Paciente *
             </Label>
-            <Input
-              id="patient"
-              placeholder="Buscar paciente..."
-              value={patient}
-              onChange={(e) => setPatient(e.target.value)}
-              list="patients"
-            />
-            <datalist id="patients">
-              <option value="Maria Silva" />
-              <option value="João Santos" />
-              <option value="Pedro Costa" />
-              <option value="Ana Lima" />
-              <option value="Carlos Mendes" />
-            </datalist>
+            <Select value={patient} onValueChange={setPatient}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o paciente" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {patientsData
+                  .filter((p) => p.status === "active")
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((p) => (
+                    <SelectItem key={p.id} value={p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
