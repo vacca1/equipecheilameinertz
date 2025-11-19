@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, TrendingUp, Users, DollarSign, Calendar, Clock, AlertCircle, ArrowUp, ArrowDown } from "lucide-react";
+import { FileText, Download, TrendingUp, Users, DollarSign, Calendar, Clock, AlertCircle, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { useState } from "react";
 import { useIncomes } from "@/hooks/useIncomes";
@@ -8,9 +8,14 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAppointments } from "@/hooks/useAppointments";
 import { useSessions } from "@/hooks/useSessions";
 import { format, subDays, subMonths } from "date-fns";
+import { generateReportPDF } from "@/lib/pdf-generator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 const Reports = () => {
   const [period, setPeriod] = useState<"week" | "month" | "custom">("month");
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
 
   // Calculate date range
   const endDate = format(new Date(), "yyyy-MM-dd");

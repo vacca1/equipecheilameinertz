@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,7 +29,18 @@ import {
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import { therapists } from "@/data/therapists";
-import { useCreateExpense } from "@/hooks/useExpenses";
+import { useCreateExpense, useUpdateExpense, useDeleteExpense, Expense } from "@/hooks/useExpenses";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const expenseSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
@@ -45,16 +57,32 @@ type ExpenseFormData = z.infer<typeof expenseSchema>;
 interface ExpenseModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  expense?: Expense;
 }
 
-export function ExpenseModal({ open, onOpenChange }: ExpenseModalProps) {
+export function ExpenseModal({ open, onOpenChange, expense }: ExpenseModalProps) {
   const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
+  const deleteExpense = useDeleteExpense();
+  const { uploadFile, uploading } = useFileUpload();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | undefined>(expense?.file_url);
+  
+  const isEditMode = !!expense;
   const now = new Date();
   const currentDate = now.toISOString().slice(0, 10);
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: {
+    defaultValues: expense ? {
+      date: expense.date,
+      description: expense.description,
+      category: expense.category,
+      value: expense.value.toString(),
+      responsible: expense.responsible || "",
+      therapist: expense.therapist || "",
+      observations: expense.observations || "",
+    } : {
       date: currentDate,
       description: "",
       category: "",
@@ -68,6 +96,16 @@ export function ExpenseModal({ open, onOpenChange }: ExpenseModalProps) {
   const selectedCategory = form.watch("category");
   const showTherapistField = selectedCategory === "commission";
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const url = await uploadFile(file, "expense-files");
+    if (url) {
+      setUploadedFileUrl(url);
+    }
+  };
+
   const onSubmit = (data: ExpenseFormData) => {
     const expenseData = {
       date: data.date,
@@ -77,19 +115,39 @@ export function ExpenseModal({ open, onOpenChange }: ExpenseModalProps) {
       responsible: data.responsible || undefined,
       therapist: data.therapist || undefined,
       observations: data.observations || undefined,
+      file_url: uploadedFileUrl,
     };
 
-    createExpense.mutate(expenseData);
+    if (isEditMode && expense) {
+      updateExpense.mutate({ id: expense.id, ...expenseData });
+    } else {
+      createExpense.mutate(expenseData);
+    }
+    
     onOpenChange(false);
     form.reset();
+    setUploadedFileUrl(undefined);
+  };
+
+  const handleDelete = () => {
+    if (expense) {
+      deleteExpense.mutate(expense.id);
+      onOpenChange(false);
+      setShowDeleteDialog(false);
+      form.reset();
+      setUploadedFileUrl(undefined);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle className="text-xl sm:text-2xl">Adicionar Saída</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl">
+              {isEditMode ? "Editar Saída" : "Adicionar Saída"}
+            </DialogTitle>
+          </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -227,23 +285,37 @@ export function ExpenseModal({ open, onOpenChange }: ExpenseModalProps) {
               <FormLabel>Comprovante (opcional)</FormLabel>
               <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
                 <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Arraste um arquivo ou clique para fazer upload
-                </p>
-                <Input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  id="expense-file-upload"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById("expense-file-upload")?.click()}
-                >
-                  Selecionar Arquivo
-                </Button>
+                {uploadedFileUrl ? (
+                  <div className="text-sm">
+                    <p className="text-green-600 mb-2">✓ Arquivo enviado</p>
+                    <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      Ver arquivo
+                    </a>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Arraste um arquivo ou clique para fazer upload
+                    </p>
+                    <Input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="hidden"
+                      id="expense-file-upload"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("expense-file-upload")?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? "Enviando..." : "Selecionar Arquivo"}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -266,24 +338,53 @@ export function ExpenseModal({ open, onOpenChange }: ExpenseModalProps) {
             />
 
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+              {isEditMode && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="w-full sm:w-auto"
+                >
+                  Excluir
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
                   onOpenChange(false);
                   form.reset();
+                  setUploadedFileUrl(undefined);
                 }}
                 className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="destructive" className="w-full sm:w-auto">
-                Salvar Saída
+              <Button type="submit" variant="destructive" className="w-full sm:w-auto" disabled={uploading}>
+                {isEditMode ? "Atualizar" : "Salvar Saída"}
               </Button>
             </div>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir esta saída? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

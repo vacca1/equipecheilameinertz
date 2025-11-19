@@ -31,12 +31,32 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  Download,
+  CalendarIcon,
 } from "lucide-react";
 import { IncomeModal } from "@/components/IncomeModal";
 import { ExpenseModal } from "@/components/ExpenseModal";
-import { useIncomes } from "@/hooks/useIncomes";
-import { useExpenses } from "@/hooks/useExpenses";
+import { useIncomes, useDeleteIncome } from "@/hooks/useIncomes";
+import { useExpenses, useDeleteExpense } from "@/hooks/useExpenses";
 import { format, subDays } from "date-fns";
+import { generateCashFlowPDF } from "@/lib/pdf-generator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Mock data removed - using real data from database
 
@@ -44,17 +64,26 @@ export default function CashFlow() {
   const [period, setPeriod] = useState("week");
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [selectedIncome, setSelectedIncome] = useState<any>(null);
+  const [selectedExpense, setSelectedExpense] = useState<any>(null);
   const [filterTherapist, setFilterTherapist] = useState("all");
   const [filterPaymentMethod, setFilterPaymentMethod] = useState("all");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
   const [filterExpenseCategory, setFilterExpenseCategory] = useState("all");
+  const [customPeriod, setCustomPeriod] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
 
   // Calculate date range based on period
-  const endDate = format(new Date(), "yyyy-MM-dd");
-  const startDate = format(
-    period === "week" ? subDays(new Date(), 7) : subDays(new Date(), 30),
-    "yyyy-MM-dd"
-  );
+  const endDate = customEndDate 
+    ? format(customEndDate, "yyyy-MM-dd")
+    : format(new Date(), "yyyy-MM-dd");
+  const startDate = customStartDate
+    ? format(customStartDate, "yyyy-MM-dd")
+    : format(
+        period === "week" ? subDays(new Date(), 7) : subDays(new Date(), 30),
+        "yyyy-MM-dd"
+      );
 
   // Fetch data from database
   const { data: incomes = [], isLoading: loadingIncomes } = useIncomes(startDate, endDate, filterTherapist !== "all" ? filterTherapist : undefined);
@@ -141,23 +170,79 @@ export default function CashFlow() {
             </p>
           </div>
         </div>
-        <Button variant="outline" className="shadow-soft">
-          <FileText className="w-4 h-4 mr-2" />
+        <Button 
+          variant="outline" 
+          className="shadow-soft"
+          onClick={() => {
+            const periodLabel = customPeriod && customStartDate && customEndDate
+              ? `${format(customStartDate, "dd/MM/yyyy")} - ${format(customEndDate, "dd/MM/yyyy")}`
+              : period === "week" ? "Última Semana" : "Último Mês";
+            
+            generateCashFlowPDF(filteredIncomes, filteredExpenses, periodLabel);
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" />
           Exportar Relatório
         </Button>
       </div>
 
       {/* Seletor de Período */}
       <div className="flex gap-2 flex-wrap">
-        {["Hoje", "Esta Semana", "Este Mês", "Personalizado"].map((p) => (
-          <Button
-            key={p}
-            variant={period === p.toLowerCase().replace(" ", "-") ? "default" : "outline"}
-            onClick={() => setPeriod(p.toLowerCase().replace(" ", "-"))}
-          >
-            {p}
-          </Button>
-        ))}
+        <Button
+          variant={!customPeriod && period === "week" ? "default" : "outline"}
+          onClick={() => {
+            setPeriod("week");
+            setCustomPeriod(false);
+          }}
+        >
+          Esta Semana
+        </Button>
+        <Button
+          variant={!customPeriod && period === "month" ? "default" : "outline"}
+          onClick={() => {
+            setPeriod("month");
+            setCustomPeriod(false);
+          }}
+        >
+          Este Mês
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant={customPeriod ? "default" : "outline"}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Personalizado
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Data Inicial</label>
+                <Calendar
+                  mode="single"
+                  selected={customStartDate}
+                  onSelect={(date) => {
+                    setCustomStartDate(date);
+                    if (date) setCustomPeriod(true);
+                  }}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Data Final</label>
+                <Calendar
+                  mode="single"
+                  selected={customEndDate}
+                  onSelect={(date) => {
+                    setCustomEndDate(date);
+                    if (date && customStartDate) setCustomPeriod(true);
+                  }}
+                  className="pointer-events-auto"
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Cards de Resumo */}
@@ -358,10 +443,24 @@ export default function CashFlow() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedIncome(income);
+                            setIncomeModalOpen(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedIncome(income);
+                            setIncomeModalOpen(true);
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -417,10 +516,24 @@ export default function CashFlow() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedExpense(expense);
+                            setExpenseModalOpen(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedExpense(expense);
+                            setExpenseModalOpen(true);
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -482,9 +595,25 @@ export default function CashFlow() {
         </TabsContent>
       </Tabs>
 
-      {/* Modals */}
-      <IncomeModal
+      <IncomeModal 
         open={incomeModalOpen}
+        onOpenChange={(open) => {
+          setIncomeModalOpen(open);
+          if (!open) setSelectedIncome(null);
+        }}
+        income={selectedIncome}
+      />
+      <ExpenseModal 
+        open={expenseModalOpen}
+        onOpenChange={(open) => {
+          setExpenseModalOpen(open);
+          if (!open) setSelectedExpense(null);
+        }}
+        expense={selectedExpense}
+      />
+    </div>
+  );
+}
         onOpenChange={setIncomeModalOpen}
       />
 
