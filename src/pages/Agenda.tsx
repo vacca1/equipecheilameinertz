@@ -491,6 +491,7 @@ const Agenda = () => {
           appointment={selectedAppointment}
           prefilledDate={selectedDate}
           prefilledTime={selectedTime}
+          prefilledTherapist={selectedTherapist !== "TODAS" ? selectedTherapist : undefined}
         />
       </div>
     </TooltipProvider>

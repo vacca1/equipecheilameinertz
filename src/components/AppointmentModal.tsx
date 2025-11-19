@@ -24,6 +24,7 @@ interface AppointmentModalProps {
   appointment?: any;
   prefilledDate?: Date;
   prefilledTime?: string;
+  prefilledTherapist?: string;
 }
 
 const durations = ["30min", "45min", "1h", "1h15", "1h30"];
@@ -34,11 +35,11 @@ const timeSlots = Array.from({ length: 50 }, (_, i) => {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 });
 
-export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, prefilledTime }: AppointmentModalProps) => {
+export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, prefilledTime, prefilledTherapist }: AppointmentModalProps) => {
   const [date, setDate] = useState<Date | undefined>(prefilledDate || appointment?.date || new Date());
   const [time, setTime] = useState(prefilledTime || appointment?.time || "08:00");
   const [patient, setPatient] = useState(appointment?.patientName || "");
-  const [therapist, setTherapist] = useState(appointment?.therapist || "");
+  const [therapist, setTherapist] = useState(appointment?.therapist || prefilledTherapist || "");
   const [duration, setDuration] = useState(appointment?.duration || "1h");
   const [room, setRoom] = useState(appointment?.room || "");
   const [status, setStatus] = useState(appointment?.status || "pending");
