@@ -245,6 +245,7 @@ export type Database = {
           status: string | null
           substitute_therapist: string | null
           updated_at: string | null
+          wheelchair: boolean
         }
         Insert: {
           address?: string | null
@@ -275,6 +276,7 @@ export type Database = {
           status?: string | null
           substitute_therapist?: string | null
           updated_at?: string | null
+          wheelchair?: boolean
         }
         Update: {
           address?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           status?: string | null
           substitute_therapist?: string | null
           updated_at?: string | null
+          wheelchair?: boolean
         }
         Relationships: []
       }
