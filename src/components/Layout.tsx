@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
-import { Calendar, Users, DollarSign, FileText, Menu, X, Bot, LogOut } from "lucide-react";
+import { Calendar, Users, DollarSign, FileText, Menu, X, LogOut } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
-  { name: "Agenda", href: "/", icon: Calendar },
+  { name: "Agenda", href: "/agenda", icon: Calendar },
   { name: "Pacientes", href: "/patients", icon: Users },
   { name: "Caixa", href: "/cash-flow", icon: DollarSign },
   { name: "Relatórios", href: "/reports", icon: FileText },
-  { name: "Agente IA", href: "/ai-agent", icon: Bot },
 ];
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
