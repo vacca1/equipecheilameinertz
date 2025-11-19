@@ -764,6 +764,7 @@ export default function Patients() {
         <SessionModal
           open={sessionModalOpen}
           onOpenChange={setSessionModalOpen}
+          patientId={selectedPatient.id}
           patientName={selectedPatient.name}
           defaultTherapist={selectedPatient.mainTherapist}
           lastSessionNumber={
@@ -771,7 +772,6 @@ export default function Patients() {
               ? Math.max(...patientSessions.map((s) => s.sessionNumber))
               : 0
           }
-          onSave={(data) => console.log("Sessão salva:", data)}
         />
       )}
     </div>

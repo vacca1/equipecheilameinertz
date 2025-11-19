@@ -29,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
+import { useCreateSession } from "@/hooks/useSessions";
 
 const sessionSchema = z.object({
   date: z.string(),
@@ -49,19 +50,19 @@ type SessionFormData = z.infer<typeof sessionSchema>;
 interface SessionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  patientId: string;
   patientName: string;
   defaultTherapist?: string;
   lastSessionNumber: number;
-  onSave: (data: SessionFormData) => void;
 }
 
 export function SessionModal({
   open,
   onOpenChange,
+  patientId,
   patientName,
   defaultTherapist = "",
   lastSessionNumber,
-  onSave,
 }: SessionModalProps) {
   const now = new Date();
   const currentDateTime = now.toISOString().slice(0, 16);
@@ -85,10 +86,31 @@ export function SessionModal({
 
   const painBefore = form.watch("painBefore");
   const painAfter = form.watch("painAfter");
+  const createSession = useCreateSession();
 
   const onSubmit = (data: SessionFormData) => {
-    onSave(data);
-    toast.success("Sessão registrada com sucesso!");
+    const sessionValue = parseFloat(data.value);
+    const commissionPercentage = 60; // Default 60%
+    const commissionValue = (sessionValue * commissionPercentage) / 100;
+
+    createSession.mutate({
+      patient_id: patientId,
+      patient_name: patientName,
+      date: data.date.split("T")[0], // Only date part
+      session_number: data.sessionNumber,
+      therapist: data.therapist,
+      initial_pain_level: data.painBefore,
+      final_pain_level: data.painAfter,
+      observations: data.observations || null,
+      session_value: sessionValue,
+      payment_method: data.paymentMethod,
+      payment_status: data.paymentStatus === "paid" ? "paid" : "pending",
+      commission_percentage: commissionPercentage,
+      commission_value: commissionValue,
+      invoice_delivered: data.invoiceDelivered,
+      was_reimbursed: false,
+    });
+    
     onOpenChange(false);
     form.reset();
   };

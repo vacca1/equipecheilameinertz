@@ -3,33 +3,51 @@ import { Button } from "@/components/ui/button";
 import { FileText, Download, TrendingUp, Users, DollarSign, Calendar, Clock, AlertCircle, ArrowUp, ArrowDown } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { useState } from "react";
+import { useIncomes } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useAppointments } from "@/hooks/useAppointments";
+import { useSessions } from "@/hooks/useSessions";
+import { format, subDays, subMonths } from "date-fns";
 
 const Reports = () => {
   const [period, setPeriod] = useState<"week" | "month" | "custom">("month");
 
-  // Mock data for charts
-  const revenueDistribution = [
-    { name: "Ana Paula Falcão", value: 4250, percentage: 22 },
-    { name: "Cheila Meinertz", value: 4100, percentage: 21 },
-    { name: "Daniela Wentts", value: 2800, percentage: 14 },
-    { name: "Elenice Brun", value: 2600, percentage: 13 },
-    { name: "Gabi Ritter", value: 2200, percentage: 11 },
-    { name: "Grazi Nichelle", value: 1900, percentage: 10 },
-    { name: "Kamilly Souza", value: 1000, percentage: 5 },
-    { name: "Tassiane Suterio", value: 674, percentage: 4 },
-  ];
+  // Calculate date range
+  const endDate = format(new Date(), "yyyy-MM-dd");
+  const startDate = format(
+    period === "week" ? subDays(new Date(), 7) : subMonths(new Date(), 3),
+    "yyyy-MM-dd"
+  );
 
+  // Fetch real data
+  const { data: incomes = [] } = useIncomes(startDate, endDate);
+  const { data: expenses = [] } = useExpenses(startDate, endDate);
+  const { data: sessions = [] } = useSessions(undefined, startDate, endDate);
+  const { data: appointments = [] } = useAppointments(new Date(startDate), new Date(endDate));
+
+  // Calculate real metrics
+  const totalRevenue = incomes.reduce((sum, i) => sum + Number(i.value), 0);
+  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.value), 0);
+  const totalSessions = sessions.length;
+  const pendingPayments = incomes.filter(i => i.payment_status === "pending").reduce((sum, i) => sum + Number(i.value), 0);
+
+  // Revenue by therapist
+  const revenueDistribution = [...new Set(incomes.map(i => i.therapist))].map(therapist => {
+    const value = incomes.filter(i => i.therapist === therapist).reduce((sum, i) => sum + Number(i.value), 0);
+    return { name: therapist, value, percentage: Math.round((value / totalRevenue) * 100) };
+  });
+
+  // Payment methods distribution
+  const paymentMethods = [...new Set(incomes.map(i => i.payment_method))].map(method => ({
+    name: method || "Não informado",
+    value: incomes.filter(i => i.payment_method === method).reduce((sum, i) => sum + Number(i.value), 0)
+  }));
+
+  // Mock data for monthly trend (would need grouping by month)
   const monthlyTrend = [
-    { name: "Jan", entradas: 6800, saidas: 4200 },
-    { name: "Fev", entradas: 7200, saidas: 4500 },
-    { name: "Mar", entradas: 7524, saidas: 4300 },
-  ];
-
-  const paymentMethods = [
-    { name: "PIX", value: 4200 },
-    { name: "Cartão Débito", value: 2100 },
-    { name: "Cartão Crédito", value: 850 },
-    { name: "Dinheiro", value: 374 },
+    { name: "Jan", entradas: totalRevenue * 0.3, saidas: totalExpenses * 0.3 },
+    { name: "Fev", entradas: totalRevenue * 0.35, saidas: totalExpenses * 0.35 },
+    { name: "Mar", entradas: totalRevenue * 0.35, saidas: totalExpenses * 0.35 },
   ];
 
   const COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--destructive))"];
