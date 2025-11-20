@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
 import { rooms } from "@/data/rooms";
-import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment } from "@/hooks/useAppointments";
+import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, useAppointments } from "@/hooks/useAppointments";
 import { usePatients } from "@/hooks/usePatients";
 
 interface AppointmentModalProps {
@@ -52,6 +52,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const updateAppointment = useUpdateAppointment();
   const deleteAppointment = useDeleteAppointment();
   const { data: patientsData = [] } = usePatients();
+  const { data: allAppointments = [] } = useAppointments();
 
   useEffect(() => {
     if (!open) return;
@@ -99,6 +100,24 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
     }
     if (!date) {
       toast.error("Selecione uma data");
+      return;
+    }
+
+    // Verificar conflito de horário
+    const formattedDate = format(date, "yyyy-MM-dd");
+    const conflict = allAppointments.find(
+      (apt) =>
+        apt.therapist === therapist &&
+        apt.date === formattedDate &&
+        apt.time === time &&
+        apt.status !== 'cancelled' &&
+        apt.id !== appointment?.id // Exclui o próprio agendamento se estiver editando
+    );
+
+    if (conflict) {
+      toast.error(
+        `⚠️ Conflito de horário: ${therapist} já tem agendamento às ${time} em ${format(date, "dd/MM/yyyy", { locale: ptBR })}`
+      );
       return;
     }
 
