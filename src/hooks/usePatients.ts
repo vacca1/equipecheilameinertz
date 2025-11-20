@@ -6,14 +6,18 @@ export interface Patient {
   id: string;
   name: string;
   cpf?: string;
+  rg?: string;
   birth_date?: string;
   phone?: string;
   emergency_contact?: string;
   email?: string;
   address?: string;
+  address_number?: string;
+  address_complement?: string;
   cep?: string;
   city?: string;
   state?: string;
+  wheelchair?: boolean;
   main_therapist: string;
   substitute_therapist?: string;
   health_plan?: string;
@@ -22,7 +26,14 @@ export interface Patient {
   plan_number?: string;
   medical_authorization?: string;
   diagnosis?: string;
+  requesting_doctor?: string;
+  previous_pathologies?: string;
   medical_report?: string;
+  surgeries?: string;
+  medications?: string;
+  treatment_plan?: string;
+  specific_room?: string;
+  flexibility_notes?: string;
   observations?: string;
   session_value?: number;
   commission_percentage?: number;
@@ -31,7 +42,6 @@ export interface Patient {
   invoice_delivery?: string;
   days_per_week?: number;
   status?: string;
-  wheelchair?: boolean;
   created_at?: string;
   updated_at?: string;
 }

@@ -218,6 +218,8 @@ export type Database = {
       patients: {
         Row: {
           address: string | null
+          address_complement: string | null
+          address_number: string | null
           birth_date: string | null
           cep: string | null
           city: string | null
@@ -230,27 +232,37 @@ export type Database = {
           discount_percentage: number | null
           email: string | null
           emergency_contact: string | null
+          flexibility_notes: string | null
           health_plan: string | null
           id: string
           invoice_delivery: string | null
           main_therapist: string
           medical_authorization: string | null
           medical_report: string | null
+          medications: string | null
           name: string
           observations: string | null
           payment_day: number | null
           payment_method: string | null
           phone: string | null
           plan_number: string | null
+          previous_pathologies: string | null
+          requesting_doctor: string | null
+          rg: string | null
           session_value: number | null
+          specific_room: string | null
           state: string | null
           status: string | null
           substitute_therapist: string | null
+          surgeries: string | null
+          treatment_plan: string | null
           updated_at: string | null
           wheelchair: boolean
         }
         Insert: {
           address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
           birth_date?: string | null
           cep?: string | null
           city?: string | null
@@ -263,27 +275,37 @@ export type Database = {
           discount_percentage?: number | null
           email?: string | null
           emergency_contact?: string | null
+          flexibility_notes?: string | null
           health_plan?: string | null
           id?: string
           invoice_delivery?: string | null
           main_therapist: string
           medical_authorization?: string | null
           medical_report?: string | null
+          medications?: string | null
           name: string
           observations?: string | null
           payment_day?: number | null
           payment_method?: string | null
           phone?: string | null
           plan_number?: string | null
+          previous_pathologies?: string | null
+          requesting_doctor?: string | null
+          rg?: string | null
           session_value?: number | null
+          specific_room?: string | null
           state?: string | null
           status?: string | null
           substitute_therapist?: string | null
+          surgeries?: string | null
+          treatment_plan?: string | null
           updated_at?: string | null
           wheelchair?: boolean
         }
         Update: {
           address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
           birth_date?: string | null
           cep?: string | null
           city?: string | null
@@ -296,22 +318,30 @@ export type Database = {
           discount_percentage?: number | null
           email?: string | null
           emergency_contact?: string | null
+          flexibility_notes?: string | null
           health_plan?: string | null
           id?: string
           invoice_delivery?: string | null
           main_therapist?: string
           medical_authorization?: string | null
           medical_report?: string | null
+          medications?: string | null
           name?: string
           observations?: string | null
           payment_day?: number | null
           payment_method?: string | null
           phone?: string | null
           plan_number?: string | null
+          previous_pathologies?: string | null
+          requesting_doctor?: string | null
+          rg?: string | null
           session_value?: number | null
+          specific_room?: string | null
           state?: string | null
           status?: string | null
           substitute_therapist?: string | null
+          surgeries?: string | null
+          treatment_plan?: string | null
           updated_at?: string | null
           wheelchair?: boolean
         }
