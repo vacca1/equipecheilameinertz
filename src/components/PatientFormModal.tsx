@@ -118,49 +118,50 @@ export function PatientFormModal({
   // Converter dados do paciente para o formato do formulário
   const getDefaultValues = () => {
     if (patient) {
-      // Converter data de string DD/MM/YYYY para Date
-      const parseBirthDate = (dateStr: string) => {
-        if (!dateStr) return undefined;
-        const [day, month, year] = dateStr.split('/');
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      };
-
       return {
+        // Dados Pessoais
         name: patient.name || "",
-        birthDate: patient.birthDate ? parseBirthDate(patient.birthDate) : undefined,
         cpf: patient.cpf || "",
-        rg: "",
-        cep: "",
-        address: "",
-        city: "",
-        state: "",
-        number: "",
-        complement: "",
-        insurance: patient.insurance || "",
+        birthDate: patient.birth_date ? new Date(patient.birth_date) : undefined,
+        phone1: patient.phone || "",
+        phone2: patient.emergency_contact || "",
+        email: patient.email || "",
+        wheelchair: patient.wheelchair || false,
+        rg: patient.rg || "",
+        cep: patient.cep || "",
+        address: patient.address || "",
+        city: patient.city || "",
+        state: patient.state || "",
+        number: patient.address_number || "",
+        complement: patient.address_complement || "",
+        
+        // Convênio e Desconto
+        insurance: patient.health_plan || "",
         discount: patient.discount || "",
         discountPercentage: patient.discount_percentage?.toString() || "",
-        phone1: patient.phone || "",
-        phone2: "",
-        email: patient.email || "",
-        requestingDoctor: "",
-        medicalDiagnosis: "",
-        previousPathologies: "",
+        
+        // Informações Clínicas
+        requestingDoctor: patient.requesting_doctor || "",
+        medicalDiagnosis: patient.diagnosis || "",
+        previousPathologies: patient.previous_pathologies || "",
         hvp: "",
         hvaQp: "",
         professionHobby: "",
-        physicalExam: "",
-        surgeries: "",
-        medications: "",
-        treatmentPlan: "",
-        specificRoom: "",
+        physicalExam: patient.medical_report || "",
+        surgeries: patient.surgeries || "",
+        medications: patient.medications || "",
+        treatmentPlan: patient.treatment_plan || "",
+        
+        // Informações Operacionais
+        specificRoom: patient.specific_room || "",
         scheduleFlexibility: false,
-        flexibilityNotes: "",
-        billingDate: "",
-        requiresInvoice: false,
-        mainTherapist: patient.mainTherapist || "",
-        substituteTherapist: "",
-        commissionPercentage: patient.commissionPercentage || "",
-        generalNotes: "",
+        flexibilityNotes: patient.flexibility_notes || "",
+        billingDate: patient.payment_day?.toString() || "",
+        requiresInvoice: patient.invoice_delivery === "sim",
+        mainTherapist: patient.main_therapist || "",
+        substituteTherapist: patient.substitute_therapist || "",
+        commissionPercentage: patient.commission_percentage?.toString() || "",
+        generalNotes: patient.observations || "",
       };
     }
     return {
@@ -249,26 +250,45 @@ export function PatientFormModal({
 
   const onSubmit = (data: PatientFormData) => {
     const patientData = {
+      // Dados Pessoais
       name: data.name,
       cpf: data.cpf,
+      rg: data.rg || undefined,
       birth_date: format(data.birthDate, "yyyy-MM-dd"),
       phone: data.phone1,
+      emergency_contact: data.phone2 || undefined,
       email: data.email || undefined,
       address: data.address || undefined,
+      address_number: data.number || undefined,
+      address_complement: data.complement || undefined,
       cep: data.cep || undefined,
       city: data.city || undefined,
       state: data.state || undefined,
-      main_therapist: data.mainTherapist,
-      substitute_therapist: data.substituteTherapist || undefined,
-      health_plan: data.insurance,
+      wheelchair: data.wheelchair,
+      
+      // Convênio e Desconto
+      health_plan: data.insurance || undefined,
       discount: data.discount || undefined,
       discount_percentage: data.discountPercentage ? parseInt(data.discountPercentage) : undefined,
-      diagnosis: data.medicalDiagnosis,
+      
+      // Informações Clínicas
+      requesting_doctor: data.requestingDoctor || undefined,
+      diagnosis: data.medicalDiagnosis || undefined,
+      previous_pathologies: data.previousPathologies || undefined,
       medical_report: data.physicalExam || undefined,
-      observations: data.generalNotes || undefined,
+      surgeries: data.surgeries || undefined,
+      medications: data.medications || undefined,
+      treatment_plan: data.treatmentPlan || undefined,
+      
+      // Informações Operacionais
+      main_therapist: data.mainTherapist || "",
+      substitute_therapist: data.substituteTherapist || undefined,
+      specific_room: data.specificRoom || undefined,
+      flexibility_notes: data.flexibilityNotes || undefined,
+      payment_day: data.billingDate ? parseInt(data.billingDate) : undefined,
       commission_percentage: data.commissionPercentage ? parseInt(data.commissionPercentage) : undefined,
       invoice_delivery: data.requiresInvoice ? "sim" : "não",
-      wheelchair: data.wheelchair,
+      observations: data.generalNotes || undefined,
       status: "active",
     };
 
