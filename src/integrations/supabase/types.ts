@@ -240,6 +240,7 @@ export type Database = {
           medical_authorization: string | null
           medical_report: string | null
           medications: string | null
+          mobility_level: string | null
           name: string
           observations: string | null
           payment_day: number | null
@@ -257,7 +258,6 @@ export type Database = {
           surgeries: string | null
           treatment_plan: string | null
           updated_at: string | null
-          wheelchair: boolean
         }
         Insert: {
           address?: string | null
@@ -283,6 +283,7 @@ export type Database = {
           medical_authorization?: string | null
           medical_report?: string | null
           medications?: string | null
+          mobility_level?: string | null
           name: string
           observations?: string | null
           payment_day?: number | null
@@ -300,7 +301,6 @@ export type Database = {
           surgeries?: string | null
           treatment_plan?: string | null
           updated_at?: string | null
-          wheelchair?: boolean
         }
         Update: {
           address?: string | null
@@ -326,6 +326,7 @@ export type Database = {
           medical_authorization?: string | null
           medical_report?: string | null
           medications?: string | null
+          mobility_level?: string | null
           name?: string
           observations?: string | null
           payment_day?: number | null
@@ -343,7 +344,6 @@ export type Database = {
           surgeries?: string | null
           treatment_plan?: string | null
           updated_at?: string | null
-          wheelchair?: boolean
         }
         Relationships: []
       }

@@ -50,7 +50,7 @@ const patientSchema = z.object({
   birthDate: z.date({ required_error: "Data de nascimento é obrigatória" }),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF inválido"),
   phone1: z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/, "Telefone inválido"),
-  wheelchair: z.boolean().optional().default(false),
+  mobilityLevel: z.enum(['severe', 'partial', 'none']).optional().default('none'),
   rg: z.string().optional(),
   cep: z.string().optional(),
   address: z.string().optional(),
@@ -126,7 +126,7 @@ export function PatientFormModal({
         phone1: patient.phone || "",
         phone2: patient.emergency_contact || "",
         email: patient.email || "",
-        wheelchair: patient.wheelchair || false,
+        mobilityLevel: patient.mobility_level || 'none',
         rg: patient.rg || "",
         cep: patient.cep || "",
         address: patient.address || "",
@@ -264,7 +264,7 @@ export function PatientFormModal({
       cep: data.cep || undefined,
       city: data.city || undefined,
       state: data.state || undefined,
-      wheelchair: data.wheelchair,
+      mobility_level: data.mobilityLevel || 'none',
       
       // Convênio e Desconto
       health_plan: data.insurance || undefined,
@@ -478,6 +478,7 @@ export function PatientFormModal({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="Particular">Particular</SelectItem>
                             <SelectItem value="Fusex">Fusex</SelectItem>
                             <SelectItem value="Cabergs">Cabergs</SelectItem>
                             <SelectItem value="Cass">Cass</SelectItem>
@@ -686,23 +687,23 @@ export function PatientFormModal({
 
                   <FormField
                     control={form.control}
-                    name="wheelchair"
+                    name="mobilityLevel"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 md:col-span-2">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">
-                            Cadeirante
-                          </FormLabel>
-                          <FormDescription>
-                            Indica se o paciente utiliza cadeira de rodas
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Dificuldade de Locomoção</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o nível" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhuma dificuldade de locomoção</SelectItem>
+                            <SelectItem value="partial">Dificuldade de locomoção parcial</SelectItem>
+                            <SelectItem value="severe">Dificuldade de locomoção severa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -1087,6 +1088,7 @@ export function PatientFormModal({
                           </FormControl>
                           <SelectContent className="max-h-[300px] overflow-y-auto">
                             <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                            <SelectItem value="qualquer">Qualquer uma</SelectItem>
                             {therapists.map((therapist) => (
                               <SelectItem key={therapist} value={therapist}>
                                 {therapist}
