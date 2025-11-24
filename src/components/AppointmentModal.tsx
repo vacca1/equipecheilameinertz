@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, Clock, User, MapPin, FileText } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -16,7 +16,8 @@ import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
 import { rooms } from "@/data/rooms";
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, useAppointments } from "@/hooks/useAppointments";
-import { usePatients } from "@/hooks/usePatients";
+import { usePatients, type Patient } from "@/hooks/usePatients";
+import { PatientQuickView } from "@/components/PatientQuickView";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -47,6 +48,8 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const [isFirstSession, setIsFirstSession] = useState(appointment?.isFirstSession || false);
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState<Date | undefined>();
+  const [showPatientDetails, setShowPatientDetails] = useState(false);
+  const [selectedPatientData, setSelectedPatientData] = useState<Patient | null>(null);
 
   const createAppointment = useCreateAppointment();
   const updateAppointment = useUpdateAppointment();
@@ -189,21 +192,41 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
               <User className="w-4 h-4" />
               Paciente *
             </Label>
-            <Select value={patient} onValueChange={setPatient}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o paciente" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {patientsData
-                  .filter((p) => p.status === "active")
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((p) => (
-                    <SelectItem key={p.id} value={p.name}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select 
+                value={patient} 
+                onValueChange={(value) => {
+                  setPatient(value);
+                  const patientData = patientsData.find(p => p.name === value);
+                  setSelectedPatientData(patientData || null);
+                }}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Selecione o paciente" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {patientsData
+                    .filter((p) => p.status === "active")
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.name}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowPatientDetails(true)}
+                disabled={!patient}
+                title="Ver ficha completa do paciente"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
@@ -434,6 +457,12 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
             </>
           )}
         </DialogFooter>
+
+        <PatientQuickView
+          open={showPatientDetails}
+          onOpenChange={setShowPatientDetails}
+          patient={selectedPatientData}
+        />
       </DialogContent>
     </Dialog>
   );
