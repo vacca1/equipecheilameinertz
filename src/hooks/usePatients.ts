@@ -17,7 +17,7 @@ export interface Patient {
   cep?: string;
   city?: string;
   state?: string;
-  wheelchair?: boolean;
+  mobility_level?: 'severe' | 'partial' | 'none';
   main_therapist: string;
   substitute_therapist?: string;
   health_plan?: string;

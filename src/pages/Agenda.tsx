@@ -10,7 +10,7 @@ import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { AppointmentModal } from "@/components/AppointmentModal";
-import { therapistsWithAll } from "@/data/therapists";
+import { therapists } from "@/data/therapists";
 import { useAppointments } from "@/hooks/useAppointments";
 
 type AppointmentStatus = "confirmed" | "pending" | "blocked" | "cancelled" | "free";
@@ -31,8 +31,8 @@ interface Appointment {
 
 
 
-const timeSlots = Array.from({ length: 50 }, (_, i) => {
-  const totalMinutes = 7.5 * 60 + i * 15;
+const timeSlots = Array.from({ length: 29 }, (_, i) => {
+  const totalMinutes = 6.5 * 60 + i * 30;
   const hour = Math.floor(totalMinutes / 60);
   const minute = totalMinutes % 60;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
@@ -70,7 +70,7 @@ const getStatusIcon = (status: AppointmentStatus) => {
 
 const Agenda = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [selectedTherapist, setSelectedTherapist] = useState("TODAS");
+  const [selectedTherapist, setSelectedTherapist] = useState<string>(therapists[0]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -83,7 +83,7 @@ const Agenda = () => {
   // Fetch appointments for the current week
   const startDate = format(weekStart, "yyyy-MM-dd");
   const endDate = format(addDays(weekStart, 5), "yyyy-MM-dd");
-  const therapistFilter = selectedTherapist === "TODAS" ? undefined : selectedTherapist;
+  const therapistFilter = selectedTherapist;
   
   const { data: appointments = [], isLoading } = useAppointments(
     new Date(startDate),
@@ -123,11 +123,6 @@ const Agenda = () => {
     setSelectedTime(time);
 
     setModalOpen(true);
-  };
-
-  const filterAppointmentsByTherapist = (appointments: Appointment[]) => {
-    if (selectedTherapist === "TODAS") return appointments;
-    return appointments.filter((a) => a.therapist === selectedTherapist);
   };
 
   return (
@@ -209,7 +204,7 @@ const Agenda = () => {
 
           {/* Therapist Tabs */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {therapistsWithAll.map((therapist) => (
+            {therapists.map((therapist) => (
               <Button
                 key={therapist}
                 variant={selectedTherapist === therapist ? "default" : "outline"}
@@ -292,8 +287,7 @@ const Agenda = () => {
                       </td>
                       {weekDays.map((day) => {
                         const dateKey = format(day, "yyyy-MM-dd");
-                        const allAppointments = mockAppointments[dateKey] || [];
-                        const appointments = filterAppointmentsByTherapist(allAppointments);
+                        const appointments = mockAppointments[dateKey] || [];
                         const appointment = appointments.find((a) => a.time === time);
 
                         return (
@@ -417,8 +411,7 @@ const Agenda = () => {
           {(() => {
             const day = weekDays[selectedDayIndex];
             const dateKey = format(day, "yyyy-MM-dd");
-            const allAppointments = mockAppointments[dateKey] || [];
-            const appointments = filterAppointmentsByTherapist(allAppointments);
+            const appointments = mockAppointments[dateKey] || [];
 
             return (
               <Card className="p-3 sm:p-4 shadow-soft">

@@ -28,8 +28,8 @@ interface AppointmentModalProps {
 }
 
 const durations = ["30min", "45min", "1h", "1h15", "1h30"];
-const timeSlots = Array.from({ length: 50 }, (_, i) => {
-  const totalMinutes = 7.5 * 60 + i * 15;
+const timeSlots = Array.from({ length: 29 }, (_, i) => {
+  const totalMinutes = 6.5 * 60 + i * 30;
   const hour = Math.floor(totalMinutes / 60);
   const minute = totalMinutes % 60;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
