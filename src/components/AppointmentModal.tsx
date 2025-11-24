@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -18,6 +18,7 @@ import { rooms } from "@/data/rooms";
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, useAppointments } from "@/hooks/useAppointments";
 import { usePatients, type Patient } from "@/hooks/usePatients";
 import { PatientQuickView } from "@/components/PatientQuickView";
+import { PatientFormModal } from "@/components/PatientFormModal";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -50,6 +51,8 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const [repeatUntil, setRepeatUntil] = useState<Date | undefined>();
   const [showPatientDetails, setShowPatientDetails] = useState(false);
   const [selectedPatientData, setSelectedPatientData] = useState<Patient | null>(null);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
 
   const createAppointment = useCreateAppointment();
   const updateAppointment = useUpdateAppointment();
@@ -193,28 +196,58 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
               Paciente *
             </Label>
             <div className="flex gap-2">
-              <Select 
-                value={patient} 
-                onValueChange={(value) => {
-                  setPatient(value);
-                  const patientData = patientsData.find(p => p.name === value);
-                  setSelectedPatientData(patientData || null);
-                }}
+              <div className="flex-1 space-y-2">
+                <Input
+                  type="text"
+                  placeholder="🔍 Buscar por nome ou CPF..."
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                />
+                
+                <Select 
+                  value={patient} 
+                  onValueChange={(value) => {
+                    setPatient(value);
+                    const patientData = patientsData.find(p => p.name === value);
+                    setSelectedPatientData(patientData || null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o paciente" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {patientsData
+                      .filter((p) => 
+                        p.status === "active" && 
+                        (p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                         p.cpf?.includes(patientSearch))
+                      )
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.name}>
+                          <div className="flex flex-col">
+                            <span>{p.name}</span>
+                            {p.cpf && (
+                              <span className="text-xs text-muted-foreground">
+                                CPF: {p.cpf}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowAddPatientModal(true)}
+                title="Cadastrar novo paciente"
               >
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Selecione o paciente" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {patientsData
-                    .filter((p) => p.status === "active")
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((p) => (
-                      <SelectItem key={p.id} value={p.name}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                <Plus className="h-4 w-4" />
+              </Button>
               
               <Button
                 type="button"
@@ -462,6 +495,11 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
           open={showPatientDetails}
           onOpenChange={setShowPatientDetails}
           patient={selectedPatientData}
+        />
+        
+        <PatientFormModal
+          open={showAddPatientModal}
+          onOpenChange={setShowAddPatientModal}
         />
       </DialogContent>
     </Dialog>
