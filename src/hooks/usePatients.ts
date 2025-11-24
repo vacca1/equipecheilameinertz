@@ -90,7 +90,13 @@ export const useCreatePatient = () => {
       toast.success("Paciente cadastrado com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao cadastrar paciente");
+      if (error.code === '23505') {
+        toast.error("❌ Este CPF já está cadastrado no sistema", {
+          description: "Busque o paciente na lista ao invés de criar um novo."
+        });
+      } else {
+        toast.error(error.message || "Erro ao cadastrar paciente");
+      }
     },
   });
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,13 +36,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Upload, X } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CalendarIcon, Upload, X, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
 import { rooms } from "@/data/rooms";
-import { useCreatePatient, useUpdatePatient } from "@/hooks/usePatients";
+import { useCreatePatient, useUpdatePatient, type Patient } from "@/hooks/usePatients";
+import { supabase } from "@/integrations/supabase/client";
 
 const patientSchema = z.object({
   // Dados Pessoais
@@ -111,9 +113,62 @@ export function PatientFormModal({
   const [loadingCep, setLoadingCep] = useState(false);
   const [birthDateText, setBirthDateText] = useState("");
   const [showDiscountPercentage, setShowDiscountPercentage] = useState(false);
+  const [nameSuggestions, setNameSuggestions] = useState<Patient[]>([]);
+  const [showSimilarWarning, setShowSimilarWarning] = useState(false);
+  const [cpfError, setCpfError] = useState<string | null>(null);
   
   const createPatient = useCreatePatient();
   const updatePatient = useUpdatePatient();
+
+  // Camada 2: Verificar CPF duplicado
+  const checkDuplicateCPF = async (cpf: string, patientId?: string) => {
+    if (!cpf || cpf.length < 14) return null;
+    
+    const { data } = await supabase
+      .from('patients')
+      .select('id, name')
+      .eq('cpf', cpf);
+    
+    if (!data || data.length === 0) return null;
+    
+    // Se está editando, ignora o próprio registro
+    if (patientId && data[0].id === patientId) return null;
+    
+    return data[0].name;
+  };
+
+  // Camada 3: Buscar nomes similares
+  const searchSimilarNames = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout;
+      return (searchTerm: string) => {
+        clearTimeout(timeoutId);
+        
+        if (searchTerm.length < 3) {
+          setNameSuggestions([]);
+          setShowSimilarWarning(false);
+          return;
+        }
+        
+        timeoutId = setTimeout(async () => {
+          const { data } = await supabase
+            .from('patients')
+            .select('*')
+            .ilike('name', `%${searchTerm}%`)
+            .limit(5);
+          
+          if (data && data.length > 0) {
+            setNameSuggestions(data as Patient[]);
+            setShowSimilarWarning(true);
+          } else {
+            setNameSuggestions([]);
+            setShowSimilarWarning(false);
+          }
+        }, 500);
+      };
+    },
+    []
+  );
 
   // Converter dados do paciente para o formato do formulário
   const getDefaultValues = () => {
@@ -336,8 +391,41 @@ export function PatientFormModal({
                       <FormItem className="md:col-span-2">
                         <FormLabel>Nome Completo *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Digite o nome completo" {...field} />
+                          <Input 
+                            placeholder="Digite o nome completo" 
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              searchSimilarNames(e.target.value);
+                            }}
+                          />
                         </FormControl>
+                        
+                        {showSimilarWarning && nameSuggestions.length > 0 && (
+                          <Alert variant="destructive" className="mt-2">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>⚠️ Atenção: Pacientes similares encontrados</AlertTitle>
+                            <AlertDescription className="space-y-2">
+                              <p className="text-sm">Verifique se não é um destes:</p>
+                              <ul className="list-disc pl-5 space-y-1">
+                                {nameSuggestions.map(p => (
+                                  <li key={p.id} className="text-sm">
+                                    <strong>{p.name}</strong> - CPF: {p.cpf || 'Não informado'}
+                                  </li>
+                                ))}
+                              </ul>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowSimilarWarning(false)}
+                              >
+                                Continuar mesmo assim
+                              </Button>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
                         <FormMessage />
                       </FormItem>
                     )}
@@ -444,6 +532,18 @@ export function PatientFormModal({
                             placeholder="000.000.000-00"
                             {...field}
                             onChange={(e) => field.onChange(maskCpf(e.target.value))}
+                            onBlur={async () => {
+                              const existingPatient = await checkDuplicateCPF(field.value, patient?.id);
+                              if (existingPatient) {
+                                setCpfError(`CPF já cadastrado para: ${existingPatient}`);
+                                form.setError('cpf', {
+                                  type: 'manual',
+                                  message: `CPF já cadastrado para: ${existingPatient}`
+                                });
+                              } else {
+                                setCpfError(null);
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
