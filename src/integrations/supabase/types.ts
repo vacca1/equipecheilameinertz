@@ -349,6 +349,7 @@ export type Database = {
       }
       sessions: {
         Row: {
+          attended: boolean | null
           commission_percentage: number | null
           commission_value: number | null
           created_at: string | null
@@ -369,6 +370,7 @@ export type Database = {
           was_reimbursed: boolean | null
         }
         Insert: {
+          attended?: boolean | null
           commission_percentage?: number | null
           commission_value?: number | null
           created_at?: string | null
@@ -389,6 +391,7 @@ export type Database = {
           was_reimbursed?: boolean | null
         }
         Update: {
+          attended?: boolean | null
           commission_percentage?: number | null
           commission_value?: number | null
           created_at?: string | null

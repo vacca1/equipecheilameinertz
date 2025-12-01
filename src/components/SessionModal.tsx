@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
+
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
 import { useCreateSession } from "@/hooks/useSessions";
@@ -35,10 +35,7 @@ const sessionSchema = z.object({
   date: z.string(),
   therapist: z.string().min(1, "Fisioterapeuta é obrigatória"),
   sessionNumber: z.number(),
-  techniquesApplied: z.string().optional(),
-  painBefore: z.number().min(0).max(10),
-  painAfter: z.number().min(0).max(10),
-  observations: z.string().optional(),
+  observations: z.string().max(100, "Observação deve ter no máximo 100 caracteres").optional(),
   value: z.string().min(1, "Valor da sessão é obrigatório"),
   paymentMethod: z.string().min(1, "Forma de pagamento é obrigatória"),
   invoiceDelivered: z.boolean(),
@@ -89,9 +86,6 @@ export function SessionModal({
       date: currentDateTime,
       therapist: defaultTherapist,
       sessionNumber: lastSessionNumber + 1,
-      techniquesApplied: "",
-      painBefore: 5,
-      painAfter: 5,
       observations: "",
       value: calculateDiscountedValue(),
       paymentMethod: "",
@@ -100,8 +94,7 @@ export function SessionModal({
     },
   });
 
-  const painBefore = form.watch("painBefore");
-  const painAfter = form.watch("painAfter");
+  const observations = form.watch("observations");
   const createSession = useCreateSession();
 
   const onSubmit = (data: SessionFormData) => {
@@ -115,8 +108,8 @@ export function SessionModal({
       date: data.date.split("T")[0], // Only date part
       session_number: data.sessionNumber,
       therapist: data.therapist,
-      initial_pain_level: data.painBefore,
-      final_pain_level: data.painAfter,
+      initial_pain_level: null,
+      final_pain_level: null,
       observations: data.observations || null,
       session_value: sessionValue,
       payment_method: data.paymentMethod,
@@ -125,6 +118,7 @@ export function SessionModal({
       commission_value: commissionValue,
       invoice_delivered: data.invoiceDelivered,
       was_reimbursed: false,
+      attended: true,
     });
     
     onOpenChange(false);
@@ -207,89 +201,21 @@ export function SessionModal({
 
             <FormField
               control={form.control}
-              name="techniquesApplied"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Técnicas Aplicadas</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva as técnicas e exercícios aplicados"
-                      className="min-h-[80px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="painBefore"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dor Antes da Sessão: {painBefore}</FormLabel>
-                    <FormControl>
-                      <div className="pt-2">
-                        <Slider
-                          min={0}
-                          max={10}
-                          step={1}
-                          value={[field.value]}
-                          onValueChange={(vals) => field.onChange(vals[0])}
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                          <span>0 (Sem dor)</span>
-                          <span>10 (Dor máxima)</span>
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="painAfter"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dor Depois da Sessão: {painAfter}</FormLabel>
-                    <FormControl>
-                      <div className="pt-2">
-                        <Slider
-                          min={0}
-                          max={10}
-                          step={1}
-                          value={[field.value]}
-                          onValueChange={(vals) => field.onChange(vals[0])}
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                          <span>0 (Sem dor)</span>
-                          <span>10 (Dor máxima)</span>
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
               name="observations"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observações da Sessão</FormLabel>
+                  <FormLabel>Observação curta (até 100 caracteres)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Informações adicionais sobre a sessão"
-                      className="min-h-[80px]"
+                      placeholder="Ex: Paciente relatou melhora na mobilidade"
+                      maxLength={100}
+                      className="resize-none min-h-[80px]"
                       {...field}
                     />
                   </FormControl>
+                  <div className="text-xs text-muted-foreground text-right">
+                    {observations?.length || 0}/100
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
