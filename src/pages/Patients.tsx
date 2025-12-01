@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -42,13 +43,16 @@ import {
   XCircle,
   Filter,
   ArrowUpDown,
+  Save,
 } from "lucide-react";
 import { PatientFormModal } from "@/components/PatientFormModal";
 import { SessionModal } from "@/components/SessionModal";
 import { usePatients, useDeletePatient, Patient } from "@/hooks/usePatients";
 import { useSessions } from "@/hooks/useSessions";
+import { useMonthlyEvolutions, useCreateMonthlyEvolution, useUpdateMonthlyEvolution } from "@/hooks/useMonthlyEvolutions";
 import { therapistsWithAll } from "@/data/therapists";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function Patients() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,16 +67,57 @@ export default function Patients() {
   const [sessionFilterTherapist, setSessionFilterTherapist] = useState("all");
   const [sessionFilterPayment, setSessionFilterPayment] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Evolução mensal
+  const [selectedYearMonth, setSelectedYearMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [evolutionText, setEvolutionText] = useState("");
+  const [editingEvolutionId, setEditingEvolutionId] = useState<string | null>(null);
 
   // Fetch real data from database
   const { data: patients = [], isLoading } = usePatients(searchTerm, filterTherapist);
   const { data: allSessions = [] } = useSessions();
+  const { data: monthlyEvolutions = [] } = useMonthlyEvolutions(selectedPatient?.id);
   const deletePatient = useDeletePatient();
+  const createEvolution = useCreateMonthlyEvolution();
+  const updateEvolution = useUpdateMonthlyEvolution();
 
   // Set first patient as selected when data loads
   if (!selectedPatient && patients.length > 0) {
     setSelectedPatient(patients[0]);
   }
+
+  // Carregar evolução do mês selecionado
+  useEffect(() => {
+    const currentEvolution = monthlyEvolutions.find(e => e.year_month === selectedYearMonth);
+    
+    if (currentEvolution) {
+      setEvolutionText(currentEvolution.evolution_text || "");
+      setEditingEvolutionId(currentEvolution.id);
+    } else {
+      setEvolutionText("");
+      setEditingEvolutionId(null);
+    }
+  }, [selectedYearMonth, monthlyEvolutions]);
+
+  const handleSaveEvolution = () => {
+    if (!selectedPatient) return;
+
+    if (editingEvolutionId) {
+      updateEvolution.mutate({
+        id: editingEvolutionId,
+        evolution_text: evolutionText,
+      });
+    } else {
+      createEvolution.mutate({
+        patient_id: selectedPatient.id,
+        year_month: selectedYearMonth,
+        evolution_text: evolutionText,
+      });
+    }
+  };
 
   const filteredPatients = patients
     .filter((patient) => {
@@ -330,6 +375,10 @@ export default function Patients() {
                     <span className="sm:hidden">Clínicos</span>
                   </TabsTrigger>
                   <TabsTrigger value="operational" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">Operacional</TabsTrigger>
+                  <TabsTrigger value="evolution" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
+                    <span className="hidden sm:inline">Evolução Mensal</span>
+                    <span className="sm:hidden">Evolução</span>
+                  </TabsTrigger>
                   <TabsTrigger value="sessions" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
                     <span className="hidden sm:inline">Controle de Presença</span>
                     <span className="sm:hidden">Presença</span>
@@ -381,6 +430,82 @@ export default function Patients() {
                       <label className="text-sm font-medium text-muted-foreground">Porcentagem de Repasse</label>
                       <p className="mt-1">{selectedPatient.commission_percentage || 0}%</p>
                     </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="evolution" className="space-y-4">
+                  <div className="space-y-4">
+                    {/* Seletor de Mês/Ano */}
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                          Selecione o mês/ano
+                        </label>
+                        <Input
+                          type="month"
+                          value={selectedYearMonth}
+                          onChange={(e) => setSelectedYearMonth(e.target.value)}
+                          className="max-w-xs"
+                        />
+                      </div>
+                      <Button
+                        onClick={handleSaveEvolution}
+                        disabled={!evolutionText.trim()}
+                        className="mt-6"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Salvar Evolução
+                      </Button>
+                    </div>
+
+                    {/* Área de texto para evolução */}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                        Evolução do mês {format(new Date(selectedYearMonth + "-01"), "MM/yyyy", { locale: ptBR })}
+                      </label>
+                      <Textarea
+                        value={evolutionText}
+                        onChange={(e) => setEvolutionText(e.target.value)}
+                        placeholder="Descreva a evolução do paciente durante este mês..."
+                        className="min-h-[300px] resize-y"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {evolutionText.length} caracteres
+                      </p>
+                    </div>
+
+                    {/* Histórico de evoluções anteriores */}
+                    {monthlyEvolutions.length > 0 && (
+                      <div className="border-t pt-4">
+                        <h3 className="text-sm font-semibold mb-3">Histórico de Evoluções</h3>
+                        <div className="space-y-2">
+                          {monthlyEvolutions
+                            .filter(e => e.year_month !== selectedYearMonth)
+                            .slice(0, 5)
+                            .map((evolution) => (
+                              <Card
+                                key={evolution.id}
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() => setSelectedYearMonth(evolution.year_month)}
+                              >
+                                <CardContent className="p-3">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-medium">
+                                      {format(new Date(evolution.year_month + "-01"), "MMMM 'de' yyyy", { locale: ptBR })}
+                                    </span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {evolution.updated_at ? format(new Date(evolution.updated_at), "dd/MM/yyyy", { locale: ptBR }) : ""}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {evolution.evolution_text || "Sem texto registrado"}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 

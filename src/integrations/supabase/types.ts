@@ -177,6 +177,41 @@ export type Database = {
           },
         ]
       }
+      monthly_evolutions: {
+        Row: {
+          created_at: string | null
+          evolution_text: string | null
+          id: string
+          patient_id: string
+          updated_at: string | null
+          year_month: string
+        }
+        Insert: {
+          created_at?: string | null
+          evolution_text?: string | null
+          id?: string
+          patient_id: string
+          updated_at?: string | null
+          year_month: string
+        }
+        Update: {
+          created_at?: string | null
+          evolution_text?: string | null
+          id?: string
+          patient_id?: string
+          updated_at?: string | null
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_evolutions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_files: {
         Row: {
           created_at: string | null
