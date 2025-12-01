@@ -94,6 +94,32 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
     }
   }, [open, appointment, prefilledDate, prefilledTime, prefilledTherapist]);
 
+  // Função auxiliar para converter "1h", "45min" etc em minutos
+  const parseDuration = (dur: string): number => {
+    return parseInt(dur.replace(/\D/g, "")) || 60;
+  };
+
+  // Função para verificar conflito de horários considerando duração
+  const hasTimeConflict = (
+    newStart: string, 
+    newDuration: number, 
+    existingStart: string, 
+    existingDuration: number
+  ): boolean => {
+    const toMinutes = (time: string) => {
+      const [h, m] = time.split(':').map(Number);
+      return h * 60 + m;
+    };
+    
+    const newStartMin = toMinutes(newStart);
+    const newEndMin = newStartMin + newDuration;
+    const existingStartMin = toMinutes(existingStart);
+    const existingEndMin = existingStartMin + existingDuration;
+    
+    // Verifica sobreposição de intervalos
+    return newStartMin < existingEndMin && newEndMin > existingStartMin;
+  };
+
   const handleSave = () => {
     // Validações
     if (!patient) {
@@ -109,22 +135,41 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       return;
     }
 
-    // Verificar conflito de horário
+    // Verificar conflito de horário com duração (Pilates dupla permite até 2 pacientes)
     const formattedDate = format(date, "yyyy-MM-dd");
-    const conflict = allAppointments.find(
+    const newDurationMinutes = parseDuration(duration);
+    
+    const conflicts = allAppointments.filter(
       (apt) =>
         apt.therapist === therapist &&
         apt.date === formattedDate &&
-        apt.time === time &&
         apt.status !== 'cancelled' &&
-        apt.id !== appointment?.id // Exclui o próprio agendamento se estiver editando
+        apt.id !== appointment?.id && // Exclui o próprio agendamento se estiver editando
+        hasTimeConflict(time, newDurationMinutes, apt.time, apt.duration || 60)
     );
 
-    if (conflict) {
+    // Pilates dupla: permitir até 2 pacientes no mesmo horário
+    if (conflicts.length >= 2) {
       toast.error(
-        `⚠️ Conflito de horário: ${therapist} já tem agendamento às ${time} em ${format(date, "dd/MM/yyyy", { locale: ptBR })}`
+        `⚠️ Horário lotado: máximo 2 pacientes permitidos (Pilates dupla). Já existem ${conflicts.length} agendamentos neste horário.`
       );
       return;
+    }
+
+    if (conflicts.length === 1) {
+      const conflict = conflicts[0];
+      const conflictEndTime = (() => {
+        const [h, m] = conflict.time.split(':').map(Number);
+        const totalMin = h * 60 + m + (conflict.duration || 60);
+        const endH = Math.floor(totalMin / 60);
+        const endM = totalMin % 60;
+        return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+      })();
+      
+      toast.warning(
+        `⚠️ Este horário invade o tempo da sessão anterior (${conflict.patient_name} - termina às ${conflictEndTime}). Pilates dupla: ainda é possível agendar.`,
+        { duration: 5000 }
+      );
     }
 
     const appointmentData = {

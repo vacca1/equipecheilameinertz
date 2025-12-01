@@ -56,27 +56,92 @@ export const useCreateAppointment = () => {
 
   return useMutation({
     mutationFn: async (appointment: Omit<Appointment, "id" | "created_at" | "updated_at">) => {
-      // Se repeat_weekly é true, criar múltiplos agendamentos
+      // Se repeat_weekly é true, validar e criar múltiplos agendamentos
       if (appointment.repeat_weekly && appointment.repeat_until) {
-        const appointments = [];
+        const toCheck = [];
         let currentDate = parseISO(appointment.date);
         const endDate = parseISO(appointment.repeat_until);
 
+        // Coletar todas as datas a serem criadas
         while (currentDate <= endDate) {
-          appointments.push({
+          toCheck.push({
             ...appointment,
             date: format(currentDate, "yyyy-MM-dd"),
           });
           currentDate = addWeeks(currentDate, 1);
         }
 
-        const { data, error } = await supabase
+        // Buscar agendamentos existentes no período para validação
+        const { data: existingAppointments } = await supabase
           .from("appointments")
-          .insert(appointments)
-          .select();
+          .select("*")
+          .eq("therapist", appointment.therapist)
+          .gte("date", appointment.date)
+          .lte("date", appointment.repeat_until)
+          .neq("status", "cancelled");
 
-        if (error) throw error;
-        return data;
+        // Função auxiliar para verificar conflito de horários
+        const hasTimeConflict = (
+          newStart: string, 
+          newDuration: number, 
+          existingStart: string, 
+          existingDuration: number
+        ): boolean => {
+          const toMinutes = (time: string) => {
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
+          };
+          
+          const newStartMin = toMinutes(newStart);
+          const newEndMin = newStartMin + newDuration;
+          const existingStartMin = toMinutes(existingStart);
+          const existingEndMin = existingStartMin + existingDuration;
+          
+          return newStartMin < existingEndMin && newEndMin > existingStartMin;
+        };
+
+        // Validar cada data
+        const validAppointments = [];
+        const conflicts: string[] = [];
+
+        for (const apt of toCheck) {
+          const conflictsForDate = (existingAppointments || []).filter(
+            (existing) =>
+              existing.date === apt.date &&
+              hasTimeConflict(apt.time, apt.duration, existing.time, existing.duration || 60)
+          );
+
+          // Pilates dupla: permitir até 2 pacientes
+          if (conflictsForDate.length >= 2) {
+            conflicts.push(format(parseISO(apt.date), "dd/MM/yyyy"));
+          } else {
+            validAppointments.push(apt);
+          }
+        }
+
+        // Se houver conflitos, notificar o usuário
+        if (conflicts.length > 0) {
+          const summary = `${validAppointments.length} de ${toCheck.length} agendamentos criados. ${conflicts.length} conflitos (horário lotado): ${conflicts.join(", ")}`;
+          
+          if (validAppointments.length === 0) {
+            throw new Error(`Não foi possível criar nenhum agendamento. Conflitos: ${conflicts.join(", ")}`);
+          }
+          
+          toast.warning(summary, { duration: 8000 });
+        }
+
+        // Inserir apenas os agendamentos válidos
+        if (validAppointments.length > 0) {
+          const { data, error } = await supabase
+            .from("appointments")
+            .insert(validAppointments)
+            .select();
+
+          if (error) throw error;
+          return data;
+        }
+        
+        return [];
       } else {
         const { data, error } = await supabase
           .from("appointments")
@@ -88,9 +153,13 @@ export const useCreateAppointment = () => {
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      toast.success("Agendamento criado com sucesso!");
+      if (Array.isArray(data) && data.length > 1) {
+        toast.success(`${data.length} agendamentos criados com sucesso!`);
+      } else {
+        toast.success("Agendamento criado com sucesso!");
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao criar agendamento");
