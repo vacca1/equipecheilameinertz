@@ -118,6 +118,44 @@ export type Database = {
         }
         Relationships: []
       }
+      income_therapists: {
+        Row: {
+          commission_percentage: number | null
+          commission_value: number | null
+          created_at: string | null
+          id: string
+          income_id: string
+          sessions_count: number | null
+          therapist: string
+        }
+        Insert: {
+          commission_percentage?: number | null
+          commission_value?: number | null
+          created_at?: string | null
+          id?: string
+          income_id: string
+          sessions_count?: number | null
+          therapist: string
+        }
+        Update: {
+          commission_percentage?: number | null
+          commission_value?: number | null
+          created_at?: string | null
+          id?: string
+          income_id?: string
+          sessions_count?: number | null
+          therapist?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_therapists_income_id_fkey"
+            columns: ["income_id"]
+            isOneToOne: false
+            referencedRelation: "incomes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incomes: {
         Row: {
           commission_percentage: number | null
@@ -131,6 +169,7 @@ export type Database = {
           payment_method: string | null
           payment_status: string | null
           session_id: string | null
+          sessions_covered: number | null
           therapist: string
           updated_at: string | null
           value: number
@@ -147,6 +186,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           session_id?: string | null
+          sessions_covered?: number | null
           therapist: string
           updated_at?: string | null
           value: number
@@ -163,6 +203,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           session_id?: string | null
+          sessions_covered?: number | null
           therapist?: string
           updated_at?: string | null
           value?: number

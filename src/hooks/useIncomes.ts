@@ -2,6 +2,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface IncomeTherapist {
+  id: string;
+  income_id: string;
+  therapist: string;
+  sessions_count: number;
+  commission_percentage: number;
+  commission_value: number | null;
+  created_at: string | null;
+}
+
 export interface Income {
   id: string;
   date: string;
@@ -15,8 +25,10 @@ export interface Income {
   invoice_delivered: boolean;
   observations?: string;
   session_id?: string;
+  sessions_covered?: number;
   created_at?: string;
   updated_at?: string;
+  income_therapists?: IncomeTherapist[];
 }
 
 export const useIncomes = (startDate?: string, endDate?: string, therapistFilter?: string) => {
@@ -52,14 +64,35 @@ export const useCreateIncome = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (income: Omit<Income, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (income: Omit<Income, "id" | "created_at" | "updated_at"> & { therapists?: Array<{ therapist: string; sessions_count: number; commission_percentage: number }> }) => {
+      const { therapists, ...incomeData } = income;
+      
+      // Criar o income principal
       const { data, error } = await supabase
         .from("incomes")
-        .insert([income])
+        .insert([incomeData])
         .select()
         .single();
 
       if (error) throw error;
+
+      // Se houver múltiplas fisioterapeutas, criar registros na income_therapists
+      if (therapists && therapists.length > 0) {
+        const therapistRecords = therapists.map(t => ({
+          income_id: data.id,
+          therapist: t.therapist,
+          sessions_count: t.sessions_count,
+          commission_percentage: t.commission_percentage,
+          commission_value: (income.value * t.sessions_count * t.commission_percentage) / 100 / (income.sessions_covered || 1),
+        }));
+
+        const { error: therapistError } = await supabase
+          .from("income_therapists")
+          .insert(therapistRecords);
+
+        if (therapistError) throw therapistError;
+      }
+
       return data;
     },
     onSuccess: () => {
