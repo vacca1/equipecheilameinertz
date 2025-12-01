@@ -287,58 +287,75 @@ const Agenda = () => {
                       </td>
                       {weekDays.map((day) => {
                         const dateKey = format(day, "yyyy-MM-dd");
-                        const appointments = mockAppointments[dateKey] || [];
-                        const appointment = appointments.find((a) => a.time === time);
+                        const appointmentsAtTime = (mockAppointments[dateKey] || []).filter((a) => a.time === time);
 
                         return (
                           <td key={day.toISOString()} className="p-1 border-r border-border last:border-r-0">
-                            {appointment ? (
+                            {appointmentsAtTime.length > 0 ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
                                     onClick={() => handleCellClick(day, time)}
                                     className={cn(
                                       "w-full p-2 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2",
-                                      getStatusColor(appointment.status),
-                                      appointment.status === "cancelled" && "line-through opacity-70"
+                                      getStatusColor(appointmentsAtTime[0].status),
+                                      appointmentsAtTime[0].status === "cancelled" && "line-through opacity-70"
                                     )}
                                   >
                                     <div className="flex items-start justify-between gap-1">
-                                      <div className="font-semibold truncate flex-1">
-                                        {appointment.patientName}
+                                      <div className="font-semibold truncate flex-1 space-y-1">
+                                        {appointmentsAtTime.map((apt, idx) => (
+                                          <div key={apt.id} className={cn(idx > 0 && "text-[10px]")}>
+                                            {apt.patientName}
+                                          </div>
+                                        ))}
                                       </div>
                                       <div className="flex items-center gap-1 flex-shrink-0">
-                                        {getStatusIcon(appointment.status)}
-                                        {appointment.hasInvoice && (
+                                        {getStatusIcon(appointmentsAtTime[0].status)}
+                                        {appointmentsAtTime[0].hasInvoice && (
                                           <FileText className="w-3 h-3 text-primary" />
                                         )}
                                       </div>
                                     </div>
                                     <div className="text-xs opacity-80 mt-0.5 truncate">
-                                      {appointment.therapist}
+                                      {appointmentsAtTime[0].therapist}
                                     </div>
-                                    {appointment.room && (
+                                    {appointmentsAtTime[0].room && (
                                       <div className="text-xs opacity-70 mt-0.5">
-                                        {appointment.room}
+                                        {appointmentsAtTime[0].room}
+                                      </div>
+                                    )}
+                                    {appointmentsAtTime.length > 1 && (
+                                      <div className="text-[10px] opacity-60 mt-1">
+                                        Pilates Dupla ({appointmentsAtTime.length} pacientes)
                                       </div>
                                     )}
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="max-w-xs">
-                                  <div className="space-y-1">
-                                    <div className="font-semibold">{appointment.patientName}</div>
-                                    <div className="text-xs">
-                                      {appointment.time} - {appointment.duration}
-                                    </div>
-                                    <div className="text-xs">
-                                      Fisioterapeuta: {appointment.therapist}
-                                    </div>
-                                    {appointment.room && (
-                                      <div className="text-xs">Sala: {appointment.room}</div>
-                                    )}
-                                    {appointment.notes && (
-                                      <div className="text-xs mt-2 pt-2 border-t border-border">
-                                        📝 {appointment.notes}
+                                  <div className="space-y-2">
+                                    {appointmentsAtTime.map((apt, idx) => (
+                                      <div key={apt.id} className={cn(idx > 0 && "pt-2 border-t border-border")}>
+                                        <div className="font-semibold">{apt.patientName}</div>
+                                        <div className="text-xs">
+                                          {apt.time} - {apt.duration}
+                                        </div>
+                                        <div className="text-xs">
+                                          Fisioterapeuta: {apt.therapist}
+                                        </div>
+                                        {apt.room && (
+                                          <div className="text-xs">Sala: {apt.room}</div>
+                                        )}
+                                        {apt.notes && (
+                                          <div className="text-xs mt-1 pt-1 border-t border-border/50">
+                                            📝 {apt.notes}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {appointmentsAtTime.length > 1 && (
+                                      <div className="text-xs text-primary font-medium pt-2 border-t border-border">
+                                        🤸 Pilates Dupla
                                       </div>
                                     )}
                                   </div>
@@ -411,51 +428,64 @@ const Agenda = () => {
           {(() => {
             const day = weekDays[selectedDayIndex];
             const dateKey = format(day, "yyyy-MM-dd");
-            const appointments = mockAppointments[dateKey] || [];
+            const allAppointments = mockAppointments[dateKey] || [];
 
             return (
               <Card className="p-3 sm:p-4 shadow-soft">
                 <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 pb-2 border-b border-border flex items-center justify-between">
                   <span>{format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}</span>
                   <Badge variant="outline" className="text-xs">
-                    {appointments.length} agend.
+                    {allAppointments.length} agend.
                   </Badge>
                 </h3>
                 <div className="space-y-2">
                   {timeSlots.map((time) => {
-                    const appointment = appointments.find((a) => a.time === time);
+                    const appointmentsAtTime = allAppointments.filter((a) => a.time === time);
 
                     return (
                       <div key={time} className="flex gap-2">
                         <div className="text-xs sm:text-sm text-muted-foreground font-medium w-12 sm:w-16 pt-2">
                           {time}
                         </div>
-                        {appointment ? (
+                        {appointmentsAtTime.length > 0 ? (
                           <button
                             onClick={() => handleCellClick(day, time)}
                             className={cn(
                               "flex-1 p-2 sm:p-3 rounded-lg text-left transition-all border-2",
-                              getStatusColor(appointment.status)
+                              getStatusColor(appointmentsAtTime[0].status)
                             )}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="font-semibold text-sm sm:text-base truncate">{appointment.patientName}</div>
-                                <div className="text-xs sm:text-sm opacity-80 mt-1">
-                                  {appointment.therapist}
-                                </div>
-                                {appointment.room && (
-                                  <div className="text-xs opacity-70 mt-1">
-                                    {appointment.room}
+                            <div className="space-y-2">
+                              {appointmentsAtTime.map((apt, idx) => (
+                                <div key={apt.id} className={cn(idx > 0 && "pt-2 border-t border-border/30")}>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="font-semibold text-sm sm:text-base truncate">{apt.patientName}</div>
+                                      <div className="text-xs sm:text-sm opacity-80 mt-1">
+                                        {apt.therapist}
+                                      </div>
+                                      {apt.room && (
+                                        <div className="text-xs opacity-70 mt-1">
+                                          {apt.room}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {idx === 0 && (
+                                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                        {getStatusIcon(apt.status)}
+                                        {apt.hasInvoice && (
+                                          <FileText className="w-3 h-3 text-primary" />
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                {getStatusIcon(appointment.status)}
-                                {appointment.hasInvoice && (
-                                  <FileText className="w-3 h-3 text-primary" />
-                                )}
-                              </div>
+                                </div>
+                              ))}
+                              {appointmentsAtTime.length > 1 && (
+                                <div className="text-xs text-primary font-medium pt-2 border-t border-border">
+                                  🤸 Pilates Dupla ({appointmentsAtTime.length} pacientes)
+                                </div>
+                              )}
                             </div>
                           </button>
                         ) : (
