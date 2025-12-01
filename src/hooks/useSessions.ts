@@ -19,6 +19,7 @@ export interface Session {
   commission_value: number | null;
   invoice_delivered: boolean | null;
   was_reimbursed: boolean | null;
+  attended: boolean | null;
   created_at: string | null;
   updated_at: string | null;
 }
