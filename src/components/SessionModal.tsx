@@ -14,6 +14,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +55,7 @@ interface SessionModalProps {
   patientSessionValue?: number;
   patientDiscount?: string;
   patientDiscountPercentage?: number;
+  patientCommissionPercentage?: number;
 }
 
 export function SessionModal({
@@ -66,6 +68,7 @@ export function SessionModal({
   patientSessionValue,
   patientDiscount,
   patientDiscountPercentage,
+  patientCommissionPercentage = 60,
 }: SessionModalProps) {
   const now = new Date();
   const currentDateTime = now.toISOString().slice(0, 16);
@@ -99,7 +102,7 @@ export function SessionModal({
 
   const onSubmit = (data: SessionFormData) => {
     const sessionValue = parseFloat(data.value);
-    const commissionPercentage = 60; // Default 60%
+    const commissionPercentage = patientCommissionPercentage;
     const commissionValue = (sessionValue * commissionPercentage) / 100;
 
     createSession.mutate({
@@ -107,7 +110,7 @@ export function SessionModal({
       patient_name: patientName,
       date: data.date.split("T")[0], // Only date part
       session_number: data.sessionNumber,
-      therapist: data.therapist,
+      therapist: data.therapist, // Permite mudança de fisioterapeuta
       initial_pain_level: null,
       final_pain_level: null,
       observations: data.observations || null,
@@ -155,7 +158,7 @@ export function SessionModal({
                 name="therapist"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fisioterapeuta *</FormLabel>
+                    <FormLabel>Fisioterapeuta que Atendeu *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -170,6 +173,9 @@ export function SessionModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormDescription className="text-xs">
+                      Se outra fisioterapeuta atendeu no lugar, selecione-a aqui para que a comissão seja creditada corretamente.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

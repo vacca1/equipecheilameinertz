@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { therapists, therapistCommissions } from "@/data/therapists";
 import { useCreateIncome, useUpdateIncome, useDeleteIncome, Income } from "@/hooks/useIncomes";
+import { usePatients } from "@/hooks/usePatients";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,8 +76,10 @@ export function IncomeModal({ open, onOpenChange, income }: IncomeModalProps) {
   const createIncome = useCreateIncome();
   const updateIncome = useUpdateIncome();
   const deleteIncome = useDeleteIncome();
+  const { data: patientsData = [] } = usePatients();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [therapistDistribution, setTherapistDistribution] = useState<Record<string, TherapistDistribution>>({});
+  const [patientSearch, setPatientSearch] = useState("");
   
   const isEditMode = !!income;
   const now = new Date();
@@ -250,9 +253,42 @@ export function IncomeModal({ open, onOpenChange, income }: IncomeModalProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Paciente *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nome do paciente" {...field} />
-                    </FormControl>
+                    <div className="space-y-2">
+                      <Input
+                        type="text"
+                        placeholder="🔍 Buscar paciente..."
+                        value={patientSearch}
+                        onChange={(e) => setPatientSearch(e.target.value)}
+                      />
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o paciente" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="max-h-[300px]">
+                          {patientsData
+                            .filter((p) =>
+                              p.status === "active" &&
+                              (p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                               p.cpf?.includes(patientSearch))
+                            )
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((p) => (
+                              <SelectItem key={p.id} value={p.name}>
+                                <div className="flex flex-col">
+                                  <span>{p.name}</span>
+                                  {p.cpf && (
+                                    <span className="text-xs text-muted-foreground">
+                                      CPF: {p.cpf}
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
