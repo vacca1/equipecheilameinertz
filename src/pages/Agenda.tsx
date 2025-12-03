@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Check, Clock, X, Lock, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Check, Clock, X, Lock, FileText, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,17 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { therapists } from "@/data/therapists";
-import { useAppointments } from "@/hooks/useAppointments";
+import { useAppointments, useCopyWeekAppointments } from "@/hooks/useAppointments";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type AppointmentStatus = "confirmed" | "pending" | "blocked" | "cancelled" | "free";
 
@@ -76,6 +86,9 @@ const Agenda = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+
+  const copyWeek = useCopyWeekAppointments();
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
@@ -143,15 +156,25 @@ const Agenda = () => {
               </p>
             </div>
           </div>
-          <Button className="shadow-soft" onClick={() => {
-            setSelectedAppointment(null);
-            setSelectedDate(undefined);
-            setSelectedTime(undefined);
-            setModalOpen(true);
-          }}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Agendamento
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              className="shadow-soft" 
+              onClick={() => setShowCopyDialog(true)}
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Copiar Semana</span>
+            </Button>
+            <Button className="shadow-soft" onClick={() => {
+              setSelectedAppointment(null);
+              setSelectedDate(undefined);
+              setSelectedTime(undefined);
+              setModalOpen(true);
+            }}>
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Novo Agendamento</span>
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -514,6 +537,37 @@ const Agenda = () => {
           prefilledTime={selectedTime}
           prefilledTherapist={selectedTherapist !== "TODAS" ? selectedTherapist : undefined}
         />
+
+        {/* Copy Week Dialog */}
+        <AlertDialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Copiar Agenda para Próxima Semana</AlertDialogTitle>
+              <AlertDialogDescription>
+                Isso irá copiar todos os agendamentos da semana atual ({format(weekDays[0], "dd/MM")} a {format(weekDays[5], "dd/MM")}) 
+                para a próxima semana ({format(addWeeks(weekDays[0], 1), "dd/MM")} a {format(addWeeks(weekDays[5], 1), "dd/MM")}).
+                <br /><br />
+                Os novos agendamentos serão criados com status "A confirmar".
+                Você poderá editar ou excluir individualmente depois.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  copyWeek.mutate({
+                    sourceWeekStart: weekStart,
+                    targetWeekStart: addWeeks(weekStart, 1),
+                  });
+                  setShowCopyDialog(false);
+                }}
+                disabled={copyWeek.isPending}
+              >
+                {copyWeek.isPending ? "Copiando..." : "Confirmar Cópia"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );

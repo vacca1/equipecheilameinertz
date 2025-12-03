@@ -213,3 +213,74 @@ export const useDeleteAppointment = () => {
     },
   });
 };
+
+export const useCopyWeekAppointments = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      sourceWeekStart, 
+      targetWeekStart 
+    }: { 
+      sourceWeekStart: Date; 
+      targetWeekStart: Date;
+    }) => {
+      // Buscar todos os agendamentos da semana origem
+      const sourceStart = format(sourceWeekStart, "yyyy-MM-dd");
+      const sourceEnd = format(addWeeks(sourceWeekStart, 0), "yyyy-MM-dd");
+      const sourceEndDate = format(new Date(sourceWeekStart.getTime() + 5 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
+
+      const { data: sourceAppointments, error: fetchError } = await supabase
+        .from("appointments")
+        .select("*")
+        .gte("date", sourceStart)
+        .lte("date", sourceEndDate)
+        .neq("status", "cancelled");
+
+      if (fetchError) throw fetchError;
+
+      if (!sourceAppointments || sourceAppointments.length === 0) {
+        throw new Error("Nenhum agendamento encontrado na semana atual");
+      }
+
+      // Criar novos agendamentos na semana destino
+      const newAppointments = sourceAppointments.map((apt) => {
+        const sourceDate = parseISO(apt.date);
+        const dayOfWeek = sourceDate.getDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        
+        const targetDate = new Date(targetWeekStart);
+        targetDate.setDate(targetDate.getDate() + daysFromMonday);
+
+        return {
+          patient_id: apt.patient_id,
+          patient_name: apt.patient_name,
+          date: format(targetDate, "yyyy-MM-dd"),
+          time: apt.time,
+          duration: apt.duration,
+          therapist: apt.therapist,
+          room: apt.room,
+          status: "pending", // Nova semana começa como pendente
+          is_first_session: false,
+          repeat_weekly: false,
+          notes: apt.notes,
+        };
+      });
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .insert(newAppointments)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success(`${data?.length || 0} agendamentos copiados para a próxima semana!`);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao copiar agendamentos");
+    },
+  });
+};

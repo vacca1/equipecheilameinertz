@@ -96,7 +96,16 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
 
   // Função auxiliar para converter "1h", "45min" etc em minutos
   const parseDuration = (dur: string): number => {
-    return parseInt(dur.replace(/\D/g, "")) || 60;
+    if (dur.includes('h')) {
+      const match = dur.match(/(\d+)h(\d+)?/);
+      if (match) {
+        const hours = parseInt(match[1]) || 1;
+        const minutes = parseInt(match[2]) || 0;
+        return hours * 60 + minutes;
+      }
+      return 60;
+    }
+    return parseInt(dur.replace(/\D/g, '')) || 60;
   };
 
   // Função para verificar conflito de horários considerando duração
@@ -172,11 +181,17 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       );
     }
 
+    // Validar repeat_until se repeat_weekly está ativo
+    if (repeatWeekly && !repeatUntil) {
+      toast.error("Selecione uma data final para a repetição semanal");
+      return;
+    }
+
     const appointmentData = {
       patient_name: patient,
       date: format(date, "yyyy-MM-dd"),
       time,
-      duration: parseInt(duration.replace(/\D/g, "")) || 60,
+      duration: parseDuration(duration),
       therapist,
       room: room || undefined,
       status: status as "scheduled" | "confirmed" | "cancelled" | "completed",
@@ -205,7 +220,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       patient_name: "Bloqueio",
       date: format(date, "yyyy-MM-dd"),
       time,
-      duration: parseInt(duration.replace(/\D/g, "")) || 60,
+      duration: parseDuration(duration),
       therapist,
       status: "blocked" as const,
       is_first_session: false,
