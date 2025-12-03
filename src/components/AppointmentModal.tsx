@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye, Plus, AlertTriangle } from "lucide-react";
 import { format, addWeeks, differenceInWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -11,11 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
 import { rooms } from "@/data/rooms";
-import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, useAppointments } from "@/hooks/useAppointments";
+import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, useAppointments, validateWeeklyRepetition } from "@/hooks/useAppointments";
 import { usePatients, type Patient } from "@/hooks/usePatients";
 import { PatientQuickView } from "@/components/PatientQuickView";
 import { PatientFormModal } from "@/components/PatientFormModal";
@@ -53,6 +54,8 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const [selectedPatientData, setSelectedPatientData] = useState<Patient | null>(null);
   const [patientSearch, setPatientSearch] = useState("");
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [conflictPreview, setConflictPreview] = useState<{ conflicts: string[]; totalWeeks: number } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const createAppointment = useCreateAppointment();
   const updateAppointment = useUpdateAppointment();
@@ -355,7 +358,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
               </Popover>
             </div>
 
-            {/* Horário */}
+            {/* Horário com indicador de conflito */}
             <div className="grid gap-2">
               <Label className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
@@ -366,11 +369,58 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
                   <SelectValue placeholder="Selecionar horário" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[200px]">
-                  {timeSlots.map((slot) => (
-                    <SelectItem key={slot} value={slot}>
-                      {slot}
-                    </SelectItem>
-                  ))}
+                  {timeSlots.map((slot) => {
+                    // Verificar se o slot está ocupado pela duração de uma sessão anterior
+                    const formattedDate = date ? format(date, "yyyy-MM-dd") : "";
+                    const isOccupied = therapist && allAppointments.some((apt) => {
+                      if (apt.therapist !== therapist || apt.date !== formattedDate || apt.status === 'cancelled') return false;
+                      if (apt.id === appointment?.id) return false;
+                      
+                      const aptDuration = apt.duration || 60;
+                      const [aptH, aptM] = apt.time.split(':').map(Number);
+                      const [slotH, slotM] = slot.split(':').map(Number);
+                      const aptStartMin = aptH * 60 + aptM;
+                      const aptEndMin = aptStartMin + aptDuration;
+                      const slotMin = slotH * 60 + slotM;
+                      
+                      return slotMin >= aptStartMin && slotMin < aptEndMin;
+                    });
+                    
+                    const occupyingApt = therapist && allAppointments.find((apt) => {
+                      if (apt.therapist !== therapist || apt.date !== formattedDate || apt.status === 'cancelled') return false;
+                      if (apt.id === appointment?.id) return false;
+                      
+                      const aptDuration = apt.duration || 60;
+                      const [aptH, aptM] = apt.time.split(':').map(Number);
+                      const [slotH, slotM] = slot.split(':').map(Number);
+                      const aptStartMin = aptH * 60 + aptM;
+                      const aptEndMin = aptStartMin + aptDuration;
+                      const slotMin = slotH * 60 + slotM;
+                      
+                      return slotMin >= aptStartMin && slotMin < aptEndMin;
+                    });
+                    
+                    return (
+                      <SelectItem 
+                        key={slot} 
+                        value={slot}
+                        className={cn(isOccupied && "text-warning")}
+                      >
+                        <span className="flex items-center gap-2">
+                          {slot}
+                          {isOccupied && occupyingApt && (
+                            <span className="text-xs text-warning">
+                              ⚠️ {occupyingApt.patient_name.split(' ')[0]} até {(() => {
+                                const [h, m] = occupyingApt.time.split(':').map(Number);
+                                const endMin = h * 60 + m + (occupyingApt.duration || 60);
+                                return `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+                              })()}
+                            </span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -490,12 +540,13 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
               <Switch 
                 checked={repeatWeekly} 
                 onCheckedChange={(checked) => {
-                  setRepeatWeekly(checked);
+            setRepeatWeekly(checked);
+                  setConflictPreview(null);
                   // Auto-preencher com 4 semanas a partir da data selecionada
                   if (checked && date && !repeatUntil) {
                     setRepeatUntil(addWeeks(date, 4));
                   }
-                }} 
+                }}
               />
             </div>
 
@@ -532,9 +583,68 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
                 
                 {/* Preview de quantos agendamentos serão criados */}
                 {repeatUntil && date && (
-                  <div className="text-sm text-primary font-medium bg-primary/10 p-2 rounded">
-                    📅 Serão criados {differenceInWeeks(repeatUntil, date) + 1} agendamentos 
-                    (de {format(date, "dd/MM", { locale: ptBR })} até {format(repeatUntil, "dd/MM/yyyy", { locale: ptBR })})
+                  <div className="space-y-2">
+                    <div className="text-sm text-primary font-medium bg-primary/10 p-2 rounded">
+                      📅 Serão criados {differenceInWeeks(repeatUntil, date) + 1} agendamentos 
+                      (de {format(date, "dd/MM", { locale: ptBR })} até {format(repeatUntil, "dd/MM/yyyy", { locale: ptBR })})
+                    </div>
+                    
+                    {/* Botão para verificar conflitos */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled={!therapist || isValidating}
+                      onClick={async () => {
+                        if (!therapist || !date || !repeatUntil) return;
+                        
+                        setIsValidating(true);
+                        try {
+                          const result = await validateWeeklyRepetition({
+                            date: format(date, "yyyy-MM-dd"),
+                            repeat_until: format(repeatUntil, "yyyy-MM-dd"),
+                            therapist,
+                            time,
+                            duration: parseDuration(duration),
+                            patient_name: patient
+                          });
+                          setConflictPreview(result);
+                        } catch (error) {
+                          console.error("Erro ao validar:", error);
+                        } finally {
+                          setIsValidating(false);
+                        }
+                      }}
+                    >
+                      {isValidating ? "Verificando..." : "🔍 Verificar conflitos antes de salvar"}
+                    </Button>
+                    
+                    {/* Resultado da verificação */}
+                    {conflictPreview && (
+                      conflictPreview.conflicts.length > 0 ? (
+                        <Alert variant="destructive">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription>
+                            <div className="font-medium">
+                              {conflictPreview.conflicts.length} de {conflictPreview.totalWeeks} semanas têm conflito:
+                            </div>
+                            <div className="text-xs mt-1">
+                              {conflictPreview.conflicts.join(", ")}
+                            </div>
+                            <div className="text-xs mt-1 opacity-80">
+                              Essas datas serão ignoradas ao salvar.
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Alert className="border-success bg-success/10">
+                          <AlertDescription className="text-success">
+                            ✓ Nenhum conflito encontrado! Todas as {conflictPreview.totalWeeks} semanas estão livres.
+                          </AlertDescription>
+                        </Alert>
+                      )
+                    )}
                   </div>
                 )}
               </div>

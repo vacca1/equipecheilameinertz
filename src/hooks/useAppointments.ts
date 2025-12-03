@@ -51,33 +51,131 @@ export const useAppointments = (startDate?: Date, endDate?: Date, therapistFilte
   });
 };
 
+// Função auxiliar para verificar conflito de horários (exportada para uso em outros componentes)
+export const hasTimeConflict = (
+  newStart: string, 
+  newDuration: number, 
+  existingStart: string, 
+  existingDuration: number
+): boolean => {
+  const toMinutes = (time: string) => {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  };
+  
+  const newStartMin = toMinutes(newStart);
+  const newEndMin = newStartMin + newDuration;
+  const existingStartMin = toMinutes(existingStart);
+  const existingEndMin = existingStartMin + existingDuration;
+  
+  return newStartMin < existingEndMin && newEndMin > existingStartMin;
+};
+
+// Função para validar conflitos antes de criar repetição semanal
+export const validateWeeklyRepetition = async (
+  appointment: { 
+    date: string; 
+    repeat_until: string; 
+    therapist: string; 
+    time: string; 
+    duration: number;
+    patient_name: string;
+  }
+): Promise<{ valid: boolean; conflicts: string[]; totalWeeks: number }> => {
+  const toCheck: string[] = [];
+  let currentDate = parseISO(appointment.date);
+  const endDate = parseISO(appointment.repeat_until);
+
+  // Coletar todas as datas a serem verificadas
+  while (currentDate <= endDate) {
+    toCheck.push(format(currentDate, "yyyy-MM-dd"));
+    currentDate = addWeeks(currentDate, 1);
+  }
+
+  // Buscar agendamentos existentes no período
+  const { data: existingAppointments } = await supabase
+    .from("appointments")
+    .select("*")
+    .eq("therapist", appointment.therapist)
+    .gte("date", appointment.date)
+    .lte("date", appointment.repeat_until)
+    .neq("status", "cancelled");
+
+  const conflicts: string[] = [];
+
+  for (const dateStr of toCheck) {
+    const conflictsForDate = (existingAppointments || []).filter(
+      (existing) =>
+        existing.date === dateStr &&
+        hasTimeConflict(appointment.time, appointment.duration, existing.time, existing.duration || 60)
+    );
+
+    // Pilates dupla: permitir até 2 pacientes
+    if (conflictsForDate.length >= 2) {
+      conflicts.push(format(parseISO(dateStr), "dd/MM/yyyy"));
+    }
+  }
+
+  return {
+    valid: conflicts.length === 0,
+    conflicts,
+    totalWeeks: toCheck.length
+  };
+};
+
 export const useCreateAppointment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (appointment: Omit<Appointment, "id" | "created_at" | "updated_at">) => {
+      console.log("[useCreateAppointment] Iniciando criação:", appointment);
+      
       // Validação obrigatória: se repeat_weekly é true, repeat_until deve existir
       if (appointment.repeat_weekly && !appointment.repeat_until) {
         throw new Error("Data final da repetição é obrigatória quando repetição semanal está ativa");
       }
 
-      // Se repeat_weekly é true, validar e criar múltiplos agendamentos
+      // Se repeat_weekly é true, criar múltiplos agendamentos
       if (appointment.repeat_weekly && appointment.repeat_until) {
-        const toCheck = [];
+        console.log("[useCreateAppointment] Modo repetição semanal ativado");
+        
+        const appointmentsToCreate: any[] = [];
         let currentDate = parseISO(appointment.date);
         const endDate = parseISO(appointment.repeat_until);
 
+        console.log("[useCreateAppointment] Data inicial:", appointment.date);
+        console.log("[useCreateAppointment] Data final:", appointment.repeat_until);
+
         // Coletar todas as datas a serem criadas
         while (currentDate <= endDate) {
-          toCheck.push({
-            ...appointment,
-            date: format(currentDate, "yyyy-MM-dd"),
+          const dateStr = format(currentDate, "yyyy-MM-dd");
+          console.log("[useCreateAppointment] Adicionando data:", dateStr);
+          
+          appointmentsToCreate.push({
+            patient_id: appointment.patient_id,
+            patient_name: appointment.patient_name,
+            date: dateStr,
+            time: appointment.time,
+            duration: appointment.duration,
+            therapist: appointment.therapist,
+            room: appointment.room,
+            status: appointment.status || "pending",
+            is_first_session: appointment.is_first_session,
+            repeat_weekly: false, // Cada registro individual não repete
+            notes: appointment.notes,
           });
+          
           currentDate = addWeeks(currentDate, 1);
         }
 
-        // Buscar agendamentos existentes no período para validação
-        const { data: existingAppointments } = await supabase
+        console.log("[useCreateAppointment] Total de agendamentos a criar:", appointmentsToCreate.length);
+
+        if (appointmentsToCreate.length === 0) {
+          throw new Error("Nenhum agendamento para criar");
+        }
+
+        // Buscar agendamentos existentes para evitar duplicatas/conflitos
+        const { data: existingAppointments, error: fetchError } = await supabase
           .from("appointments")
           .select("*")
           .eq("therapist", appointment.therapist)
@@ -85,88 +183,111 @@ export const useCreateAppointment = () => {
           .lte("date", appointment.repeat_until)
           .neq("status", "cancelled");
 
-        // Função auxiliar para verificar conflito de horários
-        const hasTimeConflict = (
-          newStart: string, 
-          newDuration: number, 
-          existingStart: string, 
-          existingDuration: number
-        ): boolean => {
-          const toMinutes = (time: string) => {
-            const [h, m] = time.split(':').map(Number);
-            return h * 60 + m;
-          };
-          
-          const newStartMin = toMinutes(newStart);
-          const newEndMin = newStartMin + newDuration;
-          const existingStartMin = toMinutes(existingStart);
-          const existingEndMin = existingStartMin + existingDuration;
-          
-          return newStartMin < existingEndMin && newEndMin > existingStartMin;
-        };
+        if (fetchError) {
+          console.error("[useCreateAppointment] Erro ao buscar existentes:", fetchError);
+        }
 
-        // Validar cada data
-        const validAppointments = [];
-        const conflicts: string[] = [];
+        console.log("[useCreateAppointment] Agendamentos existentes:", existingAppointments?.length || 0);
 
-        for (const apt of toCheck) {
+        // Filtrar agendamentos válidos (sem conflito >= 2 pacientes)
+        const validAppointments: any[] = [];
+        const skippedDates: string[] = [];
+
+        for (const apt of appointmentsToCreate) {
           const conflictsForDate = (existingAppointments || []).filter(
             (existing) =>
               existing.date === apt.date &&
               hasTimeConflict(apt.time, apt.duration, existing.time, existing.duration || 60)
           );
 
-          // Pilates dupla: permitir até 2 pacientes
           if (conflictsForDate.length >= 2) {
-            conflicts.push(format(parseISO(apt.date), "dd/MM/yyyy"));
+            skippedDates.push(format(parseISO(apt.date), "dd/MM"));
+            console.log("[useCreateAppointment] Pulando data (lotada):", apt.date);
           } else {
             validAppointments.push(apt);
           }
         }
 
-        // Se houver conflitos, notificar o usuário
-        if (conflicts.length > 0) {
-          const summary = `${validAppointments.length} de ${toCheck.length} agendamentos criados. ${conflicts.length} conflitos (horário lotado): ${conflicts.join(", ")}`;
-          
-          if (validAppointments.length === 0) {
-            throw new Error(`Não foi possível criar nenhum agendamento. Conflitos: ${conflicts.join(", ")}`);
-          }
-          
-          toast.warning(summary, { duration: 8000 });
+        console.log("[useCreateAppointment] Agendamentos válidos:", validAppointments.length);
+        console.log("[useCreateAppointment] Datas puladas:", skippedDates);
+
+        if (validAppointments.length === 0) {
+          throw new Error(`Não foi possível criar nenhum agendamento. Todas as datas têm conflito: ${skippedDates.join(", ")}`);
         }
 
-        // Inserir apenas os agendamentos válidos
-        if (validAppointments.length > 0) {
-          const { data, error } = await supabase
-            .from("appointments")
-            .insert(validAppointments)
-            .select();
-
-          if (error) throw error;
-          return data;
-        }
-        
-        return [];
-      } else {
+        // Inserir os agendamentos válidos
         const { data, error } = await supabase
           .from("appointments")
-          .insert([appointment])
+          .insert(validAppointments)
+          .select();
+
+        if (error) {
+          console.error("[useCreateAppointment] Erro ao inserir:", error);
+          throw error;
+        }
+
+        console.log("[useCreateAppointment] Inseridos com sucesso:", data?.length || 0);
+
+        // Retornar resultado com informações de skip
+        return { 
+          data, 
+          skippedCount: skippedDates.length, 
+          skippedDates,
+          totalRequested: appointmentsToCreate.length 
+        };
+      } else {
+        // Criação simples (sem repetição)
+        console.log("[useCreateAppointment] Modo criação simples");
+        
+        const { data, error } = await supabase
+          .from("appointments")
+          .insert([{
+            patient_id: appointment.patient_id,
+            patient_name: appointment.patient_name,
+            date: appointment.date,
+            time: appointment.time,
+            duration: appointment.duration,
+            therapist: appointment.therapist,
+            room: appointment.room,
+            status: appointment.status || "pending",
+            is_first_session: appointment.is_first_session,
+            repeat_weekly: false,
+            notes: appointment.notes,
+          }])
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("[useCreateAppointment] Erro ao inserir:", error);
+          throw error;
+        }
+
+        console.log("[useCreateAppointment] Criado com sucesso:", data);
         return data;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      if (Array.isArray(data) && data.length > 1) {
-        toast.success(`${data.length} agendamentos criados com sucesso!`);
+      
+      // Verificar se é resultado de repetição semanal
+      if (result && result.data && Array.isArray(result.data)) {
+        const created = result.data.length;
+        const skipped = result.skippedCount || 0;
+        
+        if (skipped > 0) {
+          toast.warning(
+            `${created} agendamentos criados! ${skipped} datas puladas (horário lotado): ${result.skippedDates?.join(", ")}`,
+            { duration: 8000 }
+          );
+        } else {
+          toast.success(`${created} agendamentos criados com sucesso!`);
+        }
       } else {
         toast.success("Agendamento criado com sucesso!");
       }
     },
     onError: (error: any) => {
+      console.error("[useCreateAppointment] onError:", error);
       toast.error(error.message || "Erro ao criar agendamento");
     },
   });
