@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Check, Clock, X, Lock, FileText, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Check, Clock, X, Lock, FileText, Copy, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -270,7 +270,11 @@ const Agenda = () => {
                 <span>Livre</span>
               </div>
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
+                <MessageSquare className="w-4 h-4 text-primary" />
+                <span>Com observação</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-success" />
                 <span>Nota fiscal emitida</span>
               </div>
             </div>
@@ -335,8 +339,11 @@ const Agenda = () => {
                                       </div>
                                       <div className="flex items-center gap-1 flex-shrink-0">
                                         {getStatusIcon(appointmentsAtTime[0].status)}
+                                        {appointmentsAtTime[0].notes && (
+                                          <MessageSquare className="w-3 h-3 text-primary" />
+                                        )}
                                         {appointmentsAtTime[0].hasInvoice && (
-                                          <FileText className="w-3 h-3 text-primary" />
+                                          <FileText className="w-3 h-3 text-success" />
                                         )}
                                       </div>
                                     </div>
@@ -496,8 +503,11 @@ const Agenda = () => {
                                     {idx === 0 && (
                                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                         {getStatusIcon(apt.status)}
+                                        {apt.notes && (
+                                          <MessageSquare className="w-3 h-3 text-primary" />
+                                        )}
                                         {apt.hasInvoice && (
-                                          <FileText className="w-3 h-3 text-primary" />
+                                          <FileText className="w-3 h-3 text-success" />
                                         )}
                                       </div>
                                     )}
