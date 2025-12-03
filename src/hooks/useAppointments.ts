@@ -225,66 +225,120 @@ export const useCopyWeekAppointments = () => {
   return useMutation({
     mutationFn: async ({ 
       sourceWeekStart, 
-      targetWeekStart 
+      targetWeekStart,
+      therapistFilter
     }: { 
       sourceWeekStart: Date; 
       targetWeekStart: Date;
+      therapistFilter?: string;
     }) => {
       // Buscar todos os agendamentos da semana origem
       const sourceStart = format(sourceWeekStart, "yyyy-MM-dd");
-      const sourceEnd = format(addWeeks(sourceWeekStart, 0), "yyyy-MM-dd");
       const sourceEndDate = format(new Date(sourceWeekStart.getTime() + 5 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
+      const targetStart = format(targetWeekStart, "yyyy-MM-dd");
+      const targetEndDate = format(new Date(targetWeekStart.getTime() + 5 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
 
-      const { data: sourceAppointments, error: fetchError } = await supabase
+      let sourceQuery = supabase
         .from("appointments")
         .select("*")
         .gte("date", sourceStart)
         .lte("date", sourceEndDate)
         .neq("status", "cancelled");
 
+      // Filtrar por terapeuta se especificado
+      if (therapistFilter && therapistFilter !== "all") {
+        sourceQuery = sourceQuery.eq("therapist", therapistFilter);
+      }
+
+      const { data: sourceAppointments, error: fetchError } = await sourceQuery;
+
       if (fetchError) throw fetchError;
 
       if (!sourceAppointments || sourceAppointments.length === 0) {
-        throw new Error("Nenhum agendamento encontrado na semana atual");
+        throw new Error("Nenhum agendamento encontrado na semana atual para copiar");
       }
 
-      // Criar novos agendamentos na semana destino
-      const newAppointments = sourceAppointments.map((apt) => {
+      // Buscar agendamentos JÁ EXISTENTES na semana destino
+      const { data: existingAppointments } = await supabase
+        .from("appointments")
+        .select("patient_name, date, time, therapist")
+        .gte("date", targetStart)
+        .lte("date", targetEndDate);
+
+      // Criar conjunto de chaves únicas para verificação rápida
+      const existingKeys = new Set(
+        (existingAppointments || []).map(
+          apt => `${apt.patient_name}-${apt.date}-${apt.time}-${apt.therapist}`
+        )
+      );
+
+      // Criar novos agendamentos, excluindo duplicatas
+      const newAppointments = [];
+      const skipped: string[] = [];
+
+      for (const apt of sourceAppointments) {
         const sourceDate = parseISO(apt.date);
         const dayOfWeek = sourceDate.getDay();
         const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         
         const targetDate = new Date(targetWeekStart);
         targetDate.setDate(targetDate.getDate() + daysFromMonday);
+        const targetDateStr = format(targetDate, "yyyy-MM-dd");
 
-        return {
-          patient_id: apt.patient_id,
-          patient_name: apt.patient_name,
-          date: format(targetDate, "yyyy-MM-dd"),
-          time: apt.time,
-          duration: apt.duration,
-          therapist: apt.therapist,
-          room: apt.room,
-          status: "pending", // Nova semana começa como pendente
-          is_first_session: false,
-          repeat_weekly: false,
-          notes: apt.notes,
-        };
-      });
+        const key = `${apt.patient_name}-${targetDateStr}-${apt.time}-${apt.therapist}`;
 
+        if (existingKeys.has(key)) {
+          skipped.push(apt.patient_name);
+        } else {
+          newAppointments.push({
+            patient_id: apt.patient_id,
+            patient_name: apt.patient_name,
+            date: targetDateStr,
+            time: apt.time,
+            duration: apt.duration,
+            therapist: apt.therapist,
+            room: apt.room,
+            status: "pending",
+            is_first_session: false,
+            repeat_weekly: false,
+            notes: apt.notes,
+          });
+        }
+      }
+
+      if (newAppointments.length === 0) {
+        throw new Error("Todos os agendamentos já existem na semana destino");
+      }
+
+      // Inserir os novos agendamentos
       const { data, error } = await supabase
         .from("appointments")
         .insert(newAppointments)
         .select();
 
       if (error) throw error;
-      return data;
+
+      // Retornar resultado com detalhes
+      return { 
+        created: data, 
+        skippedCount: skipped.length,
+        totalSource: sourceAppointments.length 
+      };
     },
-    onSuccess: (data) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      toast.success(`${data?.length || 0} agendamentos copiados para a próxima semana!`);
+      
+      if (result.skippedCount > 0) {
+        toast.success(
+          `${result.created?.length || 0} agendamentos copiados! (${result.skippedCount} já existiam)`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success(`${result.created?.length || 0} agendamentos copiados para a próxima semana!`);
+      }
     },
     onError: (error: any) => {
+      console.error("Erro ao copiar semana:", error);
       toast.error(error.message || "Erro ao copiar agendamentos");
     },
   });

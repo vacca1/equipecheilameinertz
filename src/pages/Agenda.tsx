@@ -543,12 +543,18 @@ const Agenda = () => {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Copiar Agenda para Próxima Semana</AlertDialogTitle>
-              <AlertDialogDescription>
-                Isso irá copiar todos os agendamentos da semana atual ({format(weekDays[0], "dd/MM")} a {format(weekDays[5], "dd/MM")}) 
-                para a próxima semana ({format(addWeeks(weekDays[0], 1), "dd/MM")} a {format(addWeeks(weekDays[5], 1), "dd/MM")}).
-                <br /><br />
-                Os novos agendamentos serão criados com status "A confirmar".
-                Você poderá editar ou excluir individualmente depois.
+              <AlertDialogDescription asChild>
+                <div className="space-y-2">
+                  <p>
+                    Isso irá copiar os agendamentos de <strong>{selectedTherapist}</strong> da semana atual 
+                    ({format(weekDays[0], "dd/MM")} a {format(weekDays[5], "dd/MM")}) para a próxima semana 
+                    ({format(addWeeks(weekDays[0], 1), "dd/MM")} a {format(addWeeks(weekDays[5], 1), "dd/MM")}).
+                  </p>
+                  <p>
+                    Os novos agendamentos serão criados com status "A confirmar".
+                    Agendamentos que já existem na semana destino serão ignorados.
+                  </p>
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -558,6 +564,7 @@ const Agenda = () => {
                   copyWeek.mutate({
                     sourceWeekStart: weekStart,
                     targetWeekStart: addWeeks(weekStart, 1),
+                    therapistFilter: selectedTherapist,
                   });
                   setShowCopyDialog(false);
                 }}
