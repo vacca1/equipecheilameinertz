@@ -56,6 +56,11 @@ export const useCreateAppointment = () => {
 
   return useMutation({
     mutationFn: async (appointment: Omit<Appointment, "id" | "created_at" | "updated_at">) => {
+      // Validação obrigatória: se repeat_weekly é true, repeat_until deve existir
+      if (appointment.repeat_weekly && !appointment.repeat_until) {
+        throw new Error("Data final da repetição é obrigatória quando repetição semanal está ativa");
+      }
+
       // Se repeat_weekly é true, validar e criar múltiplos agendamentos
       if (appointment.repeat_weekly && appointment.repeat_until) {
         const toCheck = [];

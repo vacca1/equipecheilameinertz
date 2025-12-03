@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye, Plus } from "lucide-react";
-import { format } from "date-fns";
+import { format, addWeeks, differenceInWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -487,19 +487,30 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
                   Agendar para as próximas semanas
                 </div>
               </div>
-              <Switch checked={repeatWeekly} onCheckedChange={setRepeatWeekly} />
+              <Switch 
+                checked={repeatWeekly} 
+                onCheckedChange={(checked) => {
+                  setRepeatWeekly(checked);
+                  // Auto-preencher com 4 semanas a partir da data selecionada
+                  if (checked && date && !repeatUntil) {
+                    setRepeatUntil(addWeeks(date, 4));
+                  }
+                }} 
+              />
             </div>
 
             {repeatWeekly && (
               <div className="grid gap-2 pt-2">
-                <Label>Repetir até quando?</Label>
+                <Label className="flex items-center gap-1">
+                  Repetir até quando? <span className="text-destructive">*</span>
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
                         "justify-start text-left font-normal",
-                        !repeatUntil && "text-muted-foreground"
+                        !repeatUntil && "text-muted-foreground border-destructive"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -514,10 +525,18 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
                       initialFocus
                       className="pointer-events-auto"
                       locale={ptBR}
-                      disabled={(date) => date < (new Date())}
+                      disabled={(d) => d < (date || new Date())}
                     />
                   </PopoverContent>
                 </Popover>
+                
+                {/* Preview de quantos agendamentos serão criados */}
+                {repeatUntil && date && (
+                  <div className="text-sm text-primary font-medium bg-primary/10 p-2 rounded">
+                    📅 Serão criados {differenceInWeeks(repeatUntil, date) + 1} agendamentos 
+                    (de {format(date, "dd/MM", { locale: ptBR })} até {format(repeatUntil, "dd/MM/yyyy", { locale: ptBR })})
+                  </div>
+                )}
               </div>
             )}
           </div>
