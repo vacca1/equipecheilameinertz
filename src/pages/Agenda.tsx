@@ -39,14 +39,60 @@ interface Appointment {
 
 // Mock data com mais exemplos - REMOVED, using real data from DB
 
-
-
 const timeSlots = Array.from({ length: 29 }, (_, i) => {
   const totalMinutes = 6.5 * 60 + i * 30;
   const hour = Math.floor(totalMinutes / 60);
   const minute = totalMinutes % 60;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 });
+
+// Parse duration string to minutes
+const parseDuration = (duration: string): number => {
+  if (!duration) return 60;
+  const clean = duration.toLowerCase().replace(/\s/g, '');
+  if (clean.includes('h')) {
+    const parts = clean.split('h');
+    const hours = parseInt(parts[0]) || 0;
+    const mins = parseInt(parts[1]?.replace('min', '')) || 0;
+    return hours * 60 + mins;
+  }
+  return parseInt(clean.replace('min', '')) || 60;
+};
+
+// Calculate how many 30-min slots an appointment spans
+const getRowSpan = (duration: string): number => {
+  const minutes = parseDuration(duration);
+  return Math.ceil(minutes / 30);
+};
+
+// Get height multiplier for cell (proportional to duration)
+const getHeightMultiplier = (duration: string): number => {
+  const minutes = parseDuration(duration);
+  return minutes / 30;
+};
+
+// Check if a time slot is occupied by an ongoing appointment
+const isSlotOccupied = (
+  time: string,
+  appointments: Appointment[],
+  currentTimeSlots: string[]
+): { occupied: boolean; appointmentInfo?: Appointment } => {
+  const timeIndex = currentTimeSlots.indexOf(time);
+  if (timeIndex === -1) return { occupied: false };
+
+  for (const apt of appointments) {
+    const aptStartIndex = currentTimeSlots.indexOf(apt.time);
+    if (aptStartIndex === -1 || aptStartIndex >= timeIndex) continue;
+    
+    const slotsSpanned = getRowSpan(apt.duration);
+    const aptEndIndex = aptStartIndex + slotsSpanned - 1;
+    
+    if (timeIndex > aptStartIndex && timeIndex <= aptEndIndex) {
+      return { occupied: true, appointmentInfo: apt };
+    }
+  }
+  return { occupied: false };
+};
 
 const getStatusColor = (status: AppointmentStatus) => {
   switch (status) {
@@ -277,6 +323,10 @@ const Agenda = () => {
                 <FileText className="w-4 h-4 text-success" />
                 <span>Nota fiscal emitida</span>
               </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-muted/80 border border-primary/30" />
+                <span>Em atendimento</span>
+              </div>
             </div>
           </Card>
         </div>
@@ -314,15 +364,20 @@ const Agenda = () => {
                       </td>
                       {weekDays.map((day) => {
                         const dateKey = format(day, "yyyy-MM-dd");
-                        const appointmentsAtTime = (mockAppointments[dateKey] || []).filter((a) => a.time === time);
+                        const dayAppointments = mockAppointments[dateKey] || [];
+                        const appointmentsAtTime = dayAppointments.filter((a) => a.time === time);
+                        const occupiedInfo = isSlotOccupied(time, dayAppointments, timeSlots);
 
                         return (
-                          <td key={day.toISOString()} className="p-1 border-r border-border last:border-r-0">
+                          <td key={day.toISOString()} className="p-1 border-r border-border last:border-r-0 relative">
                             {appointmentsAtTime.length > 0 ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
                                     onClick={() => handleCellClick(day, time)}
+                                    style={{
+                                      minHeight: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 64}px`,
+                                    }}
                                     className={cn(
                                       "w-full p-2 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2",
                                       getStatusColor(appointmentsAtTime[0].status),
@@ -331,20 +386,25 @@ const Agenda = () => {
                                   >
                                     <div className="flex items-start justify-between gap-1">
                                       <div className="font-semibold truncate flex-1 space-y-1">
-                                        {appointmentsAtTime.map((apt, idx) => (
-                                          <div key={apt.id} className={cn(idx > 0 && "text-[10px]")}>
+                                        {appointmentsAtTime.map((apt, aptIdx) => (
+                                          <div key={apt.id} className={cn(aptIdx > 0 && "text-[10px]")}>
                                             {apt.patientName}
                                           </div>
                                         ))}
                                       </div>
-                                      <div className="flex items-center gap-1 flex-shrink-0">
-                                        {getStatusIcon(appointmentsAtTime[0].status)}
-                                        {appointmentsAtTime[0].notes && (
-                                          <MessageSquare className="w-3 h-3 text-primary" />
-                                        )}
-                                        {appointmentsAtTime[0].hasInvoice && (
-                                          <FileText className="w-3 h-3 text-success" />
-                                        )}
+                                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                        <div className="flex items-center gap-1">
+                                          {getStatusIcon(appointmentsAtTime[0].status)}
+                                          {appointmentsAtTime[0].notes && (
+                                            <MessageSquare className="w-3 h-3 text-primary" />
+                                          )}
+                                          {appointmentsAtTime[0].hasInvoice && (
+                                            <FileText className="w-3 h-3 text-success" />
+                                          )}
+                                        </div>
+                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                          {appointmentsAtTime[0].duration}
+                                        </Badge>
                                       </div>
                                     </div>
                                     <div className="text-xs opacity-80 mt-0.5 truncate">
@@ -364,8 +424,8 @@ const Agenda = () => {
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="max-w-xs">
                                   <div className="space-y-2">
-                                    {appointmentsAtTime.map((apt, idx) => (
-                                      <div key={apt.id} className={cn(idx > 0 && "pt-2 border-t border-border")}>
+                                    {appointmentsAtTime.map((apt, aptIdx) => (
+                                      <div key={apt.id} className={cn(aptIdx > 0 && "pt-2 border-t border-border")}>
                                         <div className="font-semibold">{apt.patientName}</div>
                                         <div className="text-xs">
                                           {apt.time} - {apt.duration}
@@ -388,6 +448,24 @@ const Agenda = () => {
                                         🤸 Pilates Dupla
                                       </div>
                                     )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : occupiedInfo.occupied ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className="w-full h-16 rounded-lg bg-muted/80 border border-primary/30 flex items-center justify-center cursor-default"
+                                  >
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Em atendimento
+                                    </span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                  <div className="text-xs">
+                                    <div className="font-semibold">{occupiedInfo.appointmentInfo?.patientName}</div>
+                                    <div>Sessão em andamento ({occupiedInfo.appointmentInfo?.duration})</div>
                                   </div>
                                 </TooltipContent>
                               </Tooltip>
@@ -471,6 +549,7 @@ const Agenda = () => {
                 <div className="space-y-2">
                   {timeSlots.map((time) => {
                     const appointmentsAtTime = allAppointments.filter((a) => a.time === time);
+                    const occupiedInfo = isSlotOccupied(time, allAppointments, timeSlots);
 
                     return (
                       <div key={time} className="flex gap-2">
@@ -486,8 +565,8 @@ const Agenda = () => {
                             )}
                           >
                             <div className="space-y-2">
-                              {appointmentsAtTime.map((apt, idx) => (
-                                <div key={apt.id} className={cn(idx > 0 && "pt-2 border-t border-border/30")}>
+                              {appointmentsAtTime.map((apt, aptIdx) => (
+                                <div key={apt.id} className={cn(aptIdx > 0 && "pt-2 border-t border-border/30")}>
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                       <div className="font-semibold text-sm sm:text-base truncate">{apt.patientName}</div>
@@ -500,15 +579,20 @@ const Agenda = () => {
                                         </div>
                                       )}
                                     </div>
-                                    {idx === 0 && (
+                                    {aptIdx === 0 && (
                                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                        {getStatusIcon(apt.status)}
-                                        {apt.notes && (
-                                          <MessageSquare className="w-3 h-3 text-primary" />
-                                        )}
-                                        {apt.hasInvoice && (
-                                          <FileText className="w-3 h-3 text-success" />
-                                        )}
+                                        <div className="flex items-center gap-1">
+                                          {getStatusIcon(apt.status)}
+                                          {apt.notes && (
+                                            <MessageSquare className="w-3 h-3 text-primary" />
+                                          )}
+                                          {apt.hasInvoice && (
+                                            <FileText className="w-3 h-3 text-success" />
+                                          )}
+                                        </div>
+                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                          {apt.duration}
+                                        </Badge>
                                       </div>
                                     )}
                                   </div>
@@ -521,6 +605,12 @@ const Agenda = () => {
                               )}
                             </div>
                           </button>
+                        ) : occupiedInfo.occupied ? (
+                          <div className="flex-1 rounded-lg bg-muted/80 border border-primary/30 p-2 sm:p-3 flex items-center">
+                            <span className="text-xs sm:text-sm text-muted-foreground">
+                              Em atendimento ({occupiedInfo.appointmentInfo?.patientName})
+                            </span>
+                          </div>
                         ) : (
                           <button
                             onClick={() => handleCellClick(day, time)}
