@@ -44,9 +44,12 @@ import {
   Filter,
   ArrowUpDown,
   Save,
+  DollarSign,
 } from "lucide-react";
 import { PatientFormModal } from "@/components/PatientFormModal";
 import { SessionModal } from "@/components/SessionModal";
+import { PatientAppointmentsTab } from "@/components/patients/PatientAppointmentsTab";
+import { PatientFinancialTab } from "@/components/patients/PatientFinancialTab";
 import { usePatients, useDeletePatient, Patient } from "@/hooks/usePatients";
 import { useSessions } from "@/hooks/useSessions";
 import { useMonthlyEvolutions, useCreateMonthlyEvolution, useUpdateMonthlyEvolution } from "@/hooks/useMonthlyEvolutions";
@@ -375,6 +378,14 @@ export default function Patients() {
                     <span className="sm:hidden">Clínicos</span>
                   </TabsTrigger>
                   <TabsTrigger value="operational" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">Operacional</TabsTrigger>
+                  <TabsTrigger value="appointments" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
+                    <span className="hidden sm:inline">Consultas</span>
+                    <span className="sm:hidden">Consultas</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="financial" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
+                    <span className="hidden sm:inline">Financeiro</span>
+                    <span className="sm:hidden">$</span>
+                  </TabsTrigger>
                   <TabsTrigger value="evolution" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
                     <span className="hidden sm:inline">Evolução Mensal</span>
                     <span className="sm:hidden">Evolução</span>
@@ -431,6 +442,14 @@ export default function Patients() {
                       <p className="mt-1">{selectedPatient.commission_percentage || 0}%</p>
                     </div>
                   </div>
+                </TabsContent>
+
+                <TabsContent value="appointments" className="space-y-4">
+                  <PatientAppointmentsTab patientId={selectedPatient.id} />
+                </TabsContent>
+
+                <TabsContent value="financial" className="space-y-4">
+                  <PatientFinancialTab patientName={selectedPatient.name} />
                 </TabsContent>
 
                 <TabsContent value="evolution" className="space-y-4">

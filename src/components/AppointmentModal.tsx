@@ -56,6 +56,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [conflictPreview, setConflictPreview] = useState<{ conflicts: string[]; totalWeeks: number } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [roomConflict, setRoomConflict] = useState<string>("");
 
   const createAppointment = useCreateAppointment();
   const updateAppointment = useUpdateAppointment();
@@ -132,6 +133,45 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
     return newStartMin < existingEndMin && newEndMin > existingStartMin;
   };
 
+  // Validar conflito de sala
+  const checkRoomConflict = () => {
+    if (!room || !date || !time || !duration) {
+      setRoomConflict("");
+      return;
+    }
+
+    const formattedDate = format(date, "yyyy-MM-dd");
+    const newDurationMinutes = parseDuration(duration);
+
+    const conflictingApt = allAppointments.find((apt) => {
+      if (apt.room !== room) return false;
+      if (apt.date !== formattedDate) return false;
+      if (apt.status === "cancelled") return false;
+      if (apt.id === appointment?.id) return false;
+      
+      return hasTimeConflict(time, newDurationMinutes, apt.time, apt.duration || 60);
+    });
+
+    if (conflictingApt) {
+      const [h, m] = conflictingApt.time.split(':').map(Number);
+      const endMin = h * 60 + m + (conflictingApt.duration || 60);
+      const endH = Math.floor(endMin / 60);
+      const endM = endMin % 60;
+      const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+      
+      setRoomConflict(
+        `${room} ocupada de ${conflictingApt.time} às ${endTime} por ${conflictingApt.therapist} (${conflictingApt.patient_name})`
+      );
+    } else {
+      setRoomConflict("");
+    }
+  };
+
+  // Verificar conflito de sala quando mudar sala, data, horário ou duração
+  useEffect(() => {
+    checkRoomConflict();
+  }, [room, date, time, duration, allAppointments]);
+
   const handleSave = () => {
     // Validações
     if (!patient) {
@@ -144,6 +184,12 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
     }
     if (!date) {
       toast.error("Selecione uma data");
+      return;
+    }
+
+    // Verificar conflito de sala
+    if (roomConflict) {
+      toast.error("Existe um conflito de sala. Escolha outro horário ou outra sala.");
       return;
     }
 
@@ -470,7 +516,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
                 Sala (opcional)
               </Label>
               <Select value={room} onValueChange={setRoom}>
-                <SelectTrigger>
+                <SelectTrigger className={cn(roomConflict && "border-destructive")}>
                   <SelectValue placeholder="Selecionar sala" />
                 </SelectTrigger>
                 <SelectContent>
@@ -481,6 +527,18 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
                   ))}
                 </SelectContent>
               </Select>
+              
+              {/* Alerta de conflito de sala */}
+              {roomConflict && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {roomConflict}
+                    <br />
+                    <span className="opacity-80">Escolha outro horário ou outra sala</span>
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             {/* Status */}
