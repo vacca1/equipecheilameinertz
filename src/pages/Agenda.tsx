@@ -323,10 +323,6 @@ const Agenda = () => {
                 <FileText className="w-4 h-4 text-success" />
                 <span>Nota fiscal emitida</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-muted/80 border border-primary/30" />
-                <span>Em atendimento</span>
-              </div>
             </div>
           </Card>
         </div>
@@ -369,17 +365,21 @@ const Agenda = () => {
                         const occupiedInfo = isSlotOccupied(time, dayAppointments, timeSlots);
 
                         return (
-                          <td key={day.toISOString()} className="p-1 border-r border-border last:border-r-0 relative">
+                          <td 
+                            key={day.toISOString()} 
+                            className="p-1 border-r border-border last:border-r-0 relative h-16"
+                            style={{ height: '64px' }}
+                          >
                             {appointmentsAtTime.length > 0 ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
                                     onClick={() => handleCellClick(day, time)}
                                     style={{
-                                      minHeight: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 64}px`,
+                                      height: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 64 - 8}px`,
                                     }}
                                     className={cn(
-                                      "w-full p-2 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2",
+                                      "absolute inset-x-1 top-1 z-10 p-2 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2 overflow-hidden",
                                       getStatusColor(appointmentsAtTime[0].status),
                                       appointmentsAtTime[0].status === "cancelled" && "line-through opacity-70"
                                     )}
@@ -452,27 +452,12 @@ const Agenda = () => {
                                 </TooltipContent>
                               </Tooltip>
                             ) : occupiedInfo.occupied ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div
-                                    className="w-full h-16 rounded-lg bg-muted/80 border border-primary/30 flex items-center justify-center cursor-default"
-                                  >
-                                    <span className="text-[10px] text-muted-foreground">
-                                      Em atendimento
-                                    </span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                  <div className="text-xs">
-                                    <div className="font-semibold">{occupiedInfo.appointmentInfo?.patientName}</div>
-                                    <div>Sessão em andamento ({occupiedInfo.appointmentInfo?.duration})</div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
+                              // Slot ocupado por sessão em andamento - célula invisível mas não clicável
+                              <div className="w-full h-full" />
                             ) : (
                               <button
                                 onClick={() => handleCellClick(day, time)}
-                                className="w-full h-16 rounded-lg bg-status-free hover:bg-muted transition-colors border border-border/50 hover:border-primary/30"
+                                className="w-full h-full rounded-lg bg-status-free hover:bg-muted transition-colors border border-border/50 hover:border-primary/30"
                               />
                             )}
                           </td>
@@ -606,11 +591,8 @@ const Agenda = () => {
                             </div>
                           </button>
                         ) : occupiedInfo.occupied ? (
-                          <div className="flex-1 rounded-lg bg-muted/80 border border-primary/30 p-2 sm:p-3 flex items-center">
-                            <span className="text-xs sm:text-sm text-muted-foreground">
-                              Em atendimento ({occupiedInfo.appointmentInfo?.patientName})
-                            </span>
-                          </div>
+                          // Slot ocupado - não clicável, visualmente sutil
+                          <div className="flex-1 rounded-lg bg-muted/50 p-2 sm:p-3" />
                         ) : (
                           <button
                             onClick={() => handleCellClick(day, time)}
