@@ -1,0 +1,283 @@
+{
+  "name": "Agendamento via WhatsApp - CRM Cheila",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "evolution-whatsapp"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extrair informações da mensagem do WhatsApp\nconst message = $input.first().json.message?.text?.toLowerCase() || '';\nconst contactName = $input.first().json.contact?.name || 'Cliente';\nconst phone = $input.first().json.from || '';\n\n// Detectar intenção\nlet intent = 'unknown';\nif (message.includes('agendar') || message.includes('marcar')) {\n  intent = 'schedule';\n} else if (message.includes('cancelar')) {\n  intent = 'cancel';\n} else if (message.includes('remarcar')) {\n  intent = 'reschedule';\n} else if (message.includes('consultar') || message.includes('ver')) {\n  intent = 'list';\n}\n\nreturn {\n  json: {\n    intent,\n    contactName,\n    phone,\n    message,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Detectar Intenção",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.intent}}",
+              "operation": "equals",
+              "value2": "schedule"
+            }
+          ]
+        }
+      },
+      "name": "Switch por Intenção",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://xtavanhzrbejykvikwua.supabase.co/functions/v1/check-availability",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_ANON_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "date",
+              "value": "={{$now.plus(1, 'days').format('yyyy-MM-dd')}}"
+            },
+            {
+              "name": "therapist",
+              "value": "Cheila Meinertz"
+            },
+            {
+              "name": "duration",
+              "value": 60
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Verificar Disponibilidade",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Formatar lista de horários disponíveis\nconst slots = $input.first().json.availableSlots || [];\nconst date = $input.first().json.date;\nconst therapist = $input.first().json.therapist;\n\nif (slots.length === 0) {\n  return {\n    json: {\n      message: `Desculpe, não há horários disponíveis para amanhã (${date}). Gostaria de verificar outra data?`,\n      hasSlots: false\n    }\n  };\n}\n\nconst formattedSlots = slots.map((slot, i) => `${i + 1}. ${slot}`);\nconst message = `📅 Horários disponíveis para ${date}:\\n${therapist}\\n\\n${formattedSlots.join('\\n')}\\n\\n*Digite o número do horário desejado.*`;\n\nreturn {\n  json: {\n    message,\n    slots,\n    date,\n    therapist,\n    hasSlots: true\n  }\n};"
+      },
+      "name": "Formatar Horários",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.EVOLUTION_API_URL}}/message/sendText/{{$env.EVOLUTION_INSTANCE}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{$node['Detectar Intenção'].json.phone}}"
+            },
+            {
+              "name": "text",
+              "value": "={{$json.message}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"Processado\"}",
+        "options": {}
+      },
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Este nó processa a resposta do cliente com o horário escolhido\n// Você precisará configurar um segundo webhook para capturar esta resposta\n\nconst message = $input.first().json.message?.text || '';\nconst slots = $node['Formatar Horários'].json.slots || [];\nconst date = $node['Formatar Horários'].json.date;\nconst therapist = $node['Formatar Horários'].json.therapist;\nconst contactName = $node['Detectar Intenção'].json.contactName;\n\n// Extrair número escolhido\nconst choice = parseInt(message.trim());\n\nif (isNaN(choice) || choice < 1 || choice > slots.length) {\n  return {\n    json: {\n      error: true,\n      message: 'Por favor, digite um número válido da lista.'\n    }\n  };\n}\n\nconst selectedTime = slots[choice - 1];\n\nreturn {\n  json: {\n    patient_name: contactName,\n    date,\n    time: selectedTime,\n    therapist,\n    duration: 60,\n    status: 'pending',\n    notes: 'Agendado via WhatsApp'\n  }\n};"
+      },
+      "name": "Processar Escolha",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "disabled": true,
+      "notes": "Este nó deve ser conectado a um segundo webhook que captura a resposta do cliente"
+    },
+    {
+      "parameters": {
+        "url": "=https://xtavanhzrbejykvikwua.supabase.co/functions/v1/create-appointment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_ANON_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"patient_name\": \"{{$json.patient_name}}\", \"date\": \"{{$json.date}}\", \"time\": \"{{$json.time}}\", \"therapist\": \"{{$json.therapist}}\", \"duration\": {{$json.duration}}, \"status\": \"{{$json.status}}\", \"notes\": \"{{$json.notes}}\"}",
+        "options": {}
+      },
+      "name": "Criar Agendamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 400],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "functionCode": "// Formatar mensagem de confirmação\nconst success = $input.first().json.success;\nconst appointment = $input.first().json.appointment || {};\n\nif (success) {\n  const message = `✅ *Agendamento Confirmado!*\\n\\n👤 Paciente: ${appointment.patient_name}\\n📅 Data: ${appointment.date}\\n🕐 Horário: ${appointment.time}\\n👨‍⚕️ Terapeuta: ${appointment.therapist}\\n\\n_Você receberá um lembrete 1 dia antes da consulta._\\n\\nAté lá! 👋`;\n  \n  return {\n    json: {\n      message,\n      success: true\n    }\n  };\n} else {\n  return {\n    json: {\n      message: '❌ Desculpe, houve um problema ao confirmar seu agendamento. Por favor, tente novamente ou entre em contato conosco.',\n      success: false\n    }\n  };\n}"
+      },
+      "name": "Formatar Confirmação",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 400],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Detectar Intenção",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar Intenção": {
+      "main": [
+        [
+          {
+            "node": "Switch por Intenção",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por Intenção": {
+      "main": [
+        [
+          {
+            "node": "Verificar Disponibilidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Disponibilidade": {
+      "main": [
+        [
+          {
+            "node": "Formatar Horários",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Horários": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "WhatsApp",
+      "createdAt": "2025-12-15T14:00:00.000Z",
+      "updatedAt": "2025-12-15T14:00:00.000Z",
+      "id": "1"
+    },
+    {
+      "name": "Agendamento",
+      "createdAt": "2025-12-15T14:00:00.000Z",
+      "updatedAt": "2025-12-15T14:00:00.000Z",
+      "id": "2"
+    }
+  ],
+  "meta": {
+    "instanceId": "example"
+  }
+}
