@@ -16,12 +16,14 @@ export type Database = {
     Tables: {
       appointments: {
         Row: {
+          attendance_status: string | null
           created_at: string | null
           date: string
           duration: number | null
           id: string
           is_first_session: boolean | null
           notes: string | null
+          package_id: string | null
           patient_id: string | null
           patient_name: string
           repeat_until: string | null
@@ -33,12 +35,14 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          attendance_status?: string | null
           created_at?: string | null
           date: string
           duration?: number | null
           id?: string
           is_first_session?: boolean | null
           notes?: string | null
+          package_id?: string | null
           patient_id?: string | null
           patient_name: string
           repeat_until?: string | null
@@ -50,12 +54,14 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          attendance_status?: string | null
           created_at?: string | null
           date?: string
           duration?: number | null
           id?: string
           is_first_session?: boolean | null
           notes?: string | null
+          package_id?: string | null
           patient_id?: string | null
           patient_name?: string
           repeat_until?: string | null
@@ -67,6 +73,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "appointments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "patient_packages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "appointments_patient_id_fkey"
             columns: ["patient_id"]
@@ -253,6 +266,42 @@ export type Database = {
           },
         ]
       }
+      packages: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number | null
+          total_sessions: number
+          updated_at: string | null
+          validity_days: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price?: number | null
+          total_sessions: number
+          updated_at?: string | null
+          validity_days?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number | null
+          total_sessions?: number
+          updated_at?: string | null
+          validity_days?: number | null
+        }
+        Relationships: []
+      }
       patient_files: {
         Row: {
           created_at: string | null
@@ -284,6 +333,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "patient_files_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_packages: {
+        Row: {
+          created_at: string | null
+          expiration_date: string | null
+          id: string
+          notes: string | null
+          package_id: string
+          patient_id: string
+          purchase_date: string | null
+          purchase_price: number | null
+          status: string | null
+          total_sessions: number
+          updated_at: string | null
+          used_sessions: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          expiration_date?: string | null
+          id?: string
+          notes?: string | null
+          package_id: string
+          patient_id: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          status?: string | null
+          total_sessions: number
+          updated_at?: string | null
+          used_sessions?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          expiration_date?: string | null
+          id?: string
+          notes?: string | null
+          package_id?: string
+          patient_id?: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          status?: string | null
+          total_sessions?: number
+          updated_at?: string | null
+          used_sessions?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_packages_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"

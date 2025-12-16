@@ -184,6 +184,10 @@ export function IncomeModal({ open, onOpenChange, income }: IncomeModalProps) {
 
     const totalCommission = getTotalCommission();
 
+    // Auto-set payment status based on payment method
+    const isImmediatePayment = ['pix', 'cash', 'dinheiro', 'debit', 'cartao_debito'].includes(data.paymentMethod);
+    const autoPaymentStatus = isImmediatePayment ? 'received' : data.paymentStatus;
+
     const incomeData = {
       date: data.date,
       patient_name: data.patient,
@@ -193,7 +197,7 @@ export function IncomeModal({ open, onOpenChange, income }: IncomeModalProps) {
       commission_percentage: therapistCommissions[data.therapists[0]] || 60,
       commission_value: totalCommission,
       payment_method: data.paymentMethod || undefined,
-      payment_status: data.paymentStatus,
+      payment_status: autoPaymentStatus, // Status automático para pagamentos à vista
       invoice_delivered: data.invoiceDelivered,
       observations: data.observations || undefined,
       therapists: therapistData,

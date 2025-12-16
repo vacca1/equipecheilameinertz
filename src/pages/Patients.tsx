@@ -50,6 +50,8 @@ import { PatientFormModal } from "@/components/PatientFormModal";
 import { SessionModal } from "@/components/SessionModal";
 import { PatientAppointmentsTab } from "@/components/patients/PatientAppointmentsTab";
 import { PatientFinancialTab } from "@/components/patients/PatientFinancialTab";
+import { PatientPackagesCard } from "@/components/patients/PatientPackagesCard";
+import { PatientCreditsCard } from "@/components/patients/PatientCreditsCard";
 import { usePatients, useDeletePatient, Patient } from "@/hooks/usePatients";
 import { useSessions } from "@/hooks/useSessions";
 import { useMonthlyEvolutions, useCreateMonthlyEvolution, useUpdateMonthlyEvolution } from "@/hooks/useMonthlyEvolutions";
@@ -449,6 +451,8 @@ export default function Patients() {
                 </TabsContent>
 
                 <TabsContent value="financial" className="space-y-4">
+                  <PatientCreditsCard patientId={selectedPatient.id} />
+                  <PatientPackagesCard patientId={selectedPatient.id} />
                   <PatientFinancialTab patientName={selectedPatient.name} />
                 </TabsContent>
 
