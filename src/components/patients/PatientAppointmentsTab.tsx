@@ -1,10 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, User, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle, UserCheck, UserX } from "lucide-react";
 import { usePatientAppointments } from "@/hooks/usePatientAppointments";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PatientSessionStats } from "./PatientSessionStats";
 
 interface PatientAppointmentsTabProps {
   patientId: string;
@@ -17,6 +18,12 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
   cancelled: { label: "Cancelado", color: "bg-destructive text-destructive-foreground", icon: <XCircle className="h-3 w-3" /> },
   blocked: { label: "Bloqueado", color: "bg-muted text-muted-foreground", icon: <AlertCircle className="h-3 w-3" /> },
   no_show: { label: "Não Compareceu", color: "bg-destructive text-destructive-foreground", icon: <XCircle className="h-3 w-3" /> },
+};
+
+const attendanceConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  present: { label: "Presente", color: "bg-green-100 text-green-800", icon: <UserCheck className="h-3 w-3" /> },
+  absent: { label: "Faltou", color: "bg-red-100 text-red-800", icon: <UserX className="h-3 w-3" /> },
+  scheduled: { label: "Agendado", color: "bg-blue-100 text-blue-800", icon: <Calendar className="h-3 w-3" /> },
 };
 
 export function PatientAppointmentsTab({ patientId }: PatientAppointmentsTabProps) {
@@ -40,8 +47,9 @@ export function PatientAppointmentsTab({ patientId }: PatientAppointmentsTabProp
     return <div className="p-4 text-center text-muted-foreground">Carregando...</div>;
   }
 
-  const AppointmentCard = ({ appointment }: { appointment: typeof appointments[0] }) => {
+  const AppointmentCard = ({ appointment, showAttendance = false }: { appointment: any; showAttendance?: boolean }) => {
     const status = statusConfig[appointment.status] || statusConfig.pending;
+    const attendance = attendanceConfig[(appointment as any).attendance_status] || attendanceConfig.scheduled;
     
     return (
       <Card className="hover:shadow-md transition-shadow">
@@ -55,10 +63,18 @@ export function PatientAppointmentsTab({ patientId }: PatientAppointmentsTabProp
                 <span className="text-sm text-muted-foreground">{appointment.time}</span>
               </div>
             </div>
-            <Badge className={status.color}>
-              {status.icon}
-              <span className="ml-1">{status.label}</span>
-            </Badge>
+            <div className="flex flex-col gap-1 items-end">
+              <Badge className={status.color}>
+                {status.icon}
+                <span className="ml-1">{status.label}</span>
+              </Badge>
+              {showAttendance && (appointment as any).attendance_status && (
+                <Badge className={attendance.color}>
+                  {attendance.icon}
+                  <span className="ml-1">{attendance.label}</span>
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -103,51 +119,56 @@ export function PatientAppointmentsTab({ patientId }: PatientAppointmentsTabProp
   );
 
   return (
-    <Tabs defaultValue="upcoming" className="w-full">
-      <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide mb-4">
-        <TabsTrigger value="upcoming" className="shrink-0 whitespace-nowrap">
-          Próximas ({upcoming.length})
-        </TabsTrigger>
-        <TabsTrigger value="history" className="shrink-0 whitespace-nowrap">
-          Histórico ({history.length})
-        </TabsTrigger>
-        <TabsTrigger value="cancelled" className="shrink-0 whitespace-nowrap">
-          Canceladas ({cancelled.length})
-        </TabsTrigger>
-      </TabsList>
+    <div className="space-y-6">
+      {/* Estatísticas de Presença */}
+      <PatientSessionStats patientId={patientId} />
 
-      <TabsContent value="upcoming" className="space-y-4">
-        {upcoming.length === 0 ? (
-          <EmptyState 
-            title="Sem consultas agendadas"
-            description="Nenhuma consulta futura para este paciente"
-          />
-        ) : (
-          upcoming.map(apt => <AppointmentCard key={apt.id} appointment={apt} />)
-        )}
-      </TabsContent>
+      <Tabs defaultValue="upcoming" className="w-full">
+        <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide mb-4">
+          <TabsTrigger value="upcoming" className="shrink-0 whitespace-nowrap">
+            Próximas ({upcoming.length})
+          </TabsTrigger>
+          <TabsTrigger value="history" className="shrink-0 whitespace-nowrap">
+            Histórico ({history.length})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="shrink-0 whitespace-nowrap">
+            Canceladas ({cancelled.length})
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="history" className="space-y-4">
-        {history.length === 0 ? (
-          <EmptyState 
-            title="Sem histórico"
-            description="Nenhuma consulta realizada ainda"
-          />
-        ) : (
-          history.map(apt => <AppointmentCard key={apt.id} appointment={apt} />)
-        )}
-      </TabsContent>
+        <TabsContent value="upcoming" className="space-y-4">
+          {upcoming.length === 0 ? (
+            <EmptyState 
+              title="Sem consultas agendadas"
+              description="Nenhuma consulta futura para este paciente"
+            />
+          ) : (
+            upcoming.map(apt => <AppointmentCard key={apt.id} appointment={apt} />)
+          )}
+        </TabsContent>
 
-      <TabsContent value="cancelled" className="space-y-4">
-        {cancelled.length === 0 ? (
-          <EmptyState 
-            title="Sem cancelamentos"
-            description="Nenhuma consulta cancelada"
-          />
-        ) : (
-          cancelled.map(apt => <AppointmentCard key={apt.id} appointment={apt} />)
-        )}
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="history" className="space-y-4">
+          {history.length === 0 ? (
+            <EmptyState 
+              title="Sem histórico"
+              description="Nenhuma consulta realizada ainda"
+            />
+          ) : (
+            history.map(apt => <AppointmentCard key={apt.id} appointment={apt} showAttendance={true} />)
+          )}
+        </TabsContent>
+
+        <TabsContent value="cancelled" className="space-y-4">
+          {cancelled.length === 0 ? (
+            <EmptyState 
+              title="Sem cancelamentos"
+              description="Nenhuma consulta cancelada"
+            />
+          ) : (
+            cancelled.map(apt => <AppointmentCard key={apt.id} appointment={apt} />)
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

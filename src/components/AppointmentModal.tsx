@@ -43,7 +43,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const [time, setTime] = useState(prefilledTime || appointment?.time || "08:00");
   const [patient, setPatient] = useState(appointment?.patientName || "");
   const [therapist, setTherapist] = useState(appointment?.therapist || prefilledTherapist || "");
-  const [duration, setDuration] = useState(appointment?.duration || "1h");
+  const [duration, setDuration] = useState(appointment?.duration || "30min");
   const [room, setRoom] = useState(appointment?.room || "");
   const [status, setStatus] = useState(appointment?.status || "pending");
   const [notes, setNotes] = useState(appointment?.notes || "");
@@ -88,7 +88,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       setDate(prefilledDate || new Date());
       setTime(prefilledTime || "08:00");
       setTherapist(prefilledTherapist || "");
-      setDuration("1h");
+      setDuration("30min");
       setRoom("");
       setStatus("pending");
       setNotes("");
