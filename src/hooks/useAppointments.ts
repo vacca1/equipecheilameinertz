@@ -269,6 +269,16 @@ export const useCreateAppointment = () => {
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       
+      // Invalidar caches do paciente para sincronização
+      const patientId = Array.isArray(result?.data) 
+        ? result.data[0]?.patient_id 
+        : result?.patient_id;
+      
+      if (patientId) {
+        queryClient.invalidateQueries({ queryKey: ["patient-appointments", patientId] });
+        queryClient.invalidateQueries({ queryKey: ["patient-session-stats", patientId] });
+      }
+      
       // Verificar se é resultado de repetição semanal
       if (result && result.data && Array.isArray(result.data)) {
         const created = result.data.length;
@@ -308,8 +318,15 @@ export const useUpdateAppointment = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      
+      // Invalidar caches do paciente para sincronização
+      if (data?.patient_id) {
+        queryClient.invalidateQueries({ queryKey: ["patient-appointments", data.patient_id] });
+        queryClient.invalidateQueries({ queryKey: ["patient-session-stats", data.patient_id] });
+      }
+      
       toast.success("Agendamento atualizado com sucesso!");
     },
     onError: (error: any) => {

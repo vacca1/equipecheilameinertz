@@ -236,7 +236,11 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       return;
     }
 
+    // Buscar patient_id do paciente selecionado
+    const selectedPatient = patientsData.find(p => p.name === patient);
+    
     const appointmentData = {
+      patient_id: selectedPatient?.id || undefined,
       patient_name: patient,
       date: format(date, "yyyy-MM-dd"),
       time,
