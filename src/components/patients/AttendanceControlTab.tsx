@@ -95,6 +95,21 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     },
   });
 
+  // Buscar todos os pacotes do paciente (para agrupar sessões)
+  const { data: allPackages = [] } = useQuery({
+    queryKey: ["all-patient-packages", patientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patient_packages")
+        .select("*, package:packages(*)")
+        .eq("patient_id", patientId)
+        .order("purchase_date", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Buscar incomes para verificar se sessão foi paga
   const { data: incomes = [] } = useQuery({
     queryKey: ["patient-incomes", patientName],
@@ -466,7 +481,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
         </Alert>
       )}
 
-      {/* Lista de Sessões */}
+      {/* Lista de Sessões Agrupadas por Pacote */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -484,220 +499,384 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {sessions.map((session, index) => {
-                const sessionStatus = getSessionStatus(session);
-                const statusInfo = statusConfig[sessionStatus];
-                const isPresent = sessionStatus === "present";
-                const totalPackageSessions = activePackage?.total_sessions || sessions.length;
-                const sessionLabel = session.session_number 
-                  ? `${session.session_number}/${totalPackageSessions}`
-                  : `${sessions.length - index}/${totalPackageSessions}`;
+            <div className="space-y-4">
+              {(() => {
+                // Agrupar sessões por pacote
+                const groupedSessions: {
+                  packageInfo: typeof allPackages[0] | null;
+                  sessions: typeof sessions;
+                  packageIndex: number;
+                }[] = [];
 
-                return (
-                  <div
-                    key={session.id}
-                    className={`border rounded-lg p-4 transition-all ${
-                      sessionStatus === "present"
-                        ? "border-green-200 bg-green-50/50"
-                        : sessionStatus === "missed"
-                        ? "border-red-200 bg-red-50/50"
-                        : "border-border"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        {/* Número da Sessão */}
-                        <div className="text-center min-w-[60px]">
-                          <div className="text-2xl font-bold text-primary">
-                            #{sessionLabel.split("/")[0]}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            de {sessionLabel.split("/")[1]}
-                          </div>
-                        </div>
+                // Criar grupos baseados em pacotes
+                if (allPackages.length > 0) {
+                  allPackages.forEach((pkg, pkgIndex) => {
+                    const pkgDate = pkg.purchase_date ? parseISO(pkg.purchase_date) : new Date(0);
+                    const nextPkgDate = allPackages[pkgIndex + 1]?.purchase_date 
+                      ? parseISO(allPackages[pkgIndex + 1].purchase_date)
+                      : new Date(0);
 
-                        <div className="space-y-1">
-                          {/* Data e Hora */}
-                          <div className="flex items-center gap-2 text-sm font-medium">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {format(parseISO(session.date), "dd/MM/yyyy", {
-                              locale: ptBR,
-                            })}{" "}
-                            às {session.time}
+                    const pkgSessions = sessions.filter(s => {
+                      try {
+                        const sessionDate = parseISO(s.date);
+                        // Sessão pertence a este pacote se data >= data compra deste pacote
+                        // e < data compra do próximo pacote (se houver)
+                        if (pkgIndex === allPackages.length - 1) {
+                          // Último pacote: todas as sessões anteriores
+                          return sessionDate < pkgDate || sessionDate >= pkgDate;
+                        }
+                        return sessionDate >= nextPkgDate && sessionDate < pkgDate;
+                      } catch {
+                        return false;
+                      }
+                    });
+
+                    // Simplificar: dividir sessões baseado no total de sessões de cada pacote
+                    groupedSessions.push({
+                      packageInfo: pkg,
+                      sessions: [],
+                      packageIndex: pkgIndex,
+                    });
+                  });
+
+                  // Distribuir sessões entre pacotes baseado na ordem e total de sessões
+                  let sessionIndex = 0;
+                  for (let i = 0; i < allPackages.length; i++) {
+                    const pkg = allPackages[i];
+                    const pkgTotalSessions = pkg.total_sessions || 10;
+                    const pkgSessions = sessions.slice(sessionIndex, sessionIndex + pkgTotalSessions);
+                    
+                    if (pkgSessions.length > 0) {
+                      groupedSessions[i].sessions = pkgSessions;
+                      sessionIndex += pkgSessions.length;
+                    }
+                  }
+
+                  // Sessões sem pacote (antes de qualquer pacote)
+                  if (sessionIndex < sessions.length) {
+                    groupedSessions.push({
+                      packageInfo: null,
+                      sessions: sessions.slice(sessionIndex),
+                      packageIndex: -1,
+                    });
+                  }
+                } else {
+                  // Sem pacotes, mostrar todas as sessões
+                  groupedSessions.push({
+                    packageInfo: null,
+                    sessions: sessions,
+                    packageIndex: -1,
+                  });
+                }
+
+                // Filtrar grupos vazios e renderizar
+                return groupedSessions
+                  .filter(group => group.sessions.length > 0)
+                  .map((group, groupIndex) => {
+                    const pkg = group.packageInfo;
+                    const usedInPackage = group.sessions.filter(
+                      s => s.attendance_status === "present"
+                    ).length;
+                    const totalInPackage = pkg?.total_sessions || group.sessions.length;
+
+                    return (
+                      <div key={pkg?.id || "no-package"} className="space-y-3">
+                        {/* Separador de Pacote */}
+                        <div className={`flex items-center gap-3 py-3 px-4 rounded-lg ${
+                          pkg 
+                            ? pkg.status === "active"
+                              ? "bg-primary/10 border border-primary/20"
+                              : pkg.status === "completed"
+                              ? "bg-green-100 border border-green-200"
+                              : "bg-muted border border-border"
+                            : "bg-muted/50 border border-dashed border-border"
+                        }`}>
+                          <div className={`p-2 rounded-full ${
+                            pkg?.status === "active" 
+                              ? "bg-primary/20" 
+                              : pkg?.status === "completed"
+                              ? "bg-green-200"
+                              : "bg-muted-foreground/20"
+                          }`}>
+                            <Package className={`h-5 w-5 ${
+                              pkg?.status === "active" 
+                                ? "text-primary" 
+                                : pkg?.status === "completed"
+                                ? "text-green-700"
+                                : "text-muted-foreground"
+                            }`} />
+                          </div>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold">
+                                {pkg?.package?.name || "Sessões Avulsas"}
+                              </h4>
+                              {pkg && (
+                                <Badge className={
+                                  pkg.status === "active"
+                                    ? "bg-primary/20 text-primary"
+                                    : pkg.status === "completed"
+                                    ? "bg-green-200 text-green-800"
+                                    : "bg-muted text-muted-foreground"
+                                }>
+                                  {pkg.status === "active" 
+                                    ? "Ativo" 
+                                    : pkg.status === "completed" 
+                                    ? "Concluído" 
+                                    : pkg.status === "expired"
+                                    ? "Expirado"
+                                    : pkg.status}
+                                </Badge>
+                              )}
+                            </div>
+                            {pkg && (
+                              <p className="text-sm text-muted-foreground">
+                                Comprado em {format(parseISO(pkg.purchase_date), "dd/MM/yyyy")} • 
+                                {" "}{usedInPackage}/{totalInPackage} sessões usadas
+                              </p>
+                            )}
                           </div>
 
-                          {/* Profissional */}
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <User className="h-4 w-4" />
-                            {session.therapist}
-                          </div>
-
-                          {/* Nota Fiscal */}
-                          {session.invoice_number && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Receipt className="h-4 w-4" />
-                              NF: {session.invoice_number}
+                          {pkg && (
+                            <div className="text-right">
+                              <p className="text-xl font-bold">
+                                {totalInPackage - usedInPackage}
+                              </p>
+                              <p className="text-xs text-muted-foreground">restantes</p>
                             </div>
                           )}
                         </div>
-                      </div>
 
-                      <div className="flex flex-col items-end gap-2">
-                        {/* Status de Presença */}
-                        <Badge className={statusInfo.color}>
-                          {statusInfo.icon}
-                          <span className="ml-1">{statusInfo.label}</span>
-                        </Badge>
+                        {/* Sessões do Pacote */}
+                        <div className="space-y-2 ml-4 border-l-2 border-muted pl-4">
+                          {group.sessions.map((session, sessionIndex) => {
+                            const sessionStatus = getSessionStatus(session);
+                            const statusInfo = statusConfig[sessionStatus];
+                            const isPresent = sessionStatus === "present";
+                            const sessionNumber = session.session_number || (group.sessions.length - sessionIndex);
+                            const totalPackageSessions = pkg?.total_sessions || group.sessions.length;
 
-                        {/* Botões de Marcar Presença (se ainda não tem status definido) */}
-                        {(sessionStatus === "pending" || sessionStatus === "scheduled") && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                              onClick={() => markAttendance.mutate({ 
-                                appointmentId: session.id, 
-                                status: "present" 
-                              })}
-                              disabled={markAttendance.isPending}
-                            >
-                              <UserCheck className="h-4 w-4 mr-1" />
-                              Presente
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 border-red-600 hover:bg-red-50"
-                              onClick={() => markAttendance.mutate({ 
-                                appointmentId: session.id, 
-                                status: "absent" 
-                              })}
-                              disabled={markAttendance.isPending}
-                            >
-                              <UserX className="h-4 w-4 mr-1" />
-                              Faltou
-                            </Button>
-                          </div>
-                        )}
+                            return (
+                              <div
+                                key={session.id}
+                                className={`border rounded-lg p-4 transition-all ${
+                                  sessionStatus === "present"
+                                    ? "border-green-200 bg-green-50/50"
+                                    : sessionStatus === "missed"
+                                    ? "border-red-200 bg-red-50/50"
+                                    : "border-border bg-background"
+                                }`}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start gap-4">
+                                    {/* Número da Sessão */}
+                                    <div className="text-center min-w-[60px]">
+                                      <div className="text-2xl font-bold text-primary">
+                                        #{sessionNumber}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        de {totalPackageSessions}
+                                      </div>
+                                    </div>
 
-                        {/* Botão Registrar Pagamento (se presente) */}
-                        {isPresent && payingSessionId !== session.id && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-success border-success hover:bg-success/10"
-                            onClick={() => setPayingSessionId(session.id)}
-                          >
-                            <DollarSign className="h-4 w-4 mr-1" />
-                            Registrar Pagamento
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                                    <div className="space-y-1">
+                                      {/* Data e Hora */}
+                                      <div className="flex items-center gap-2 text-sm font-medium">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        {format(parseISO(session.date), "dd/MM/yyyy", {
+                                          locale: ptBR,
+                                        })}{" "}
+                                        às {session.time}
+                                      </div>
 
-                    {/* Formulário de Pagamento Inline */}
-                    {payingSessionId === session.id && (
-                      <div className="mt-4 pt-4 border-t space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-sm">
-                            Registrar Pagamento
-                          </h4>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setPayingSessionId(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                                      {/* Profissional */}
+                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <User className="h-4 w-4" />
+                                        {session.therapist}
+                                      </div>
+
+                                      {/* Nota Fiscal */}
+                                      {session.invoice_number && (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                          <Receipt className="h-4 w-4" />
+                                          NF: {session.invoice_number}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-col items-end gap-2">
+                                    {/* Status de Presença */}
+                                    <Badge className={statusInfo.color}>
+                                      {statusInfo.icon}
+                                      <span className="ml-1">{statusInfo.label}</span>
+                                    </Badge>
+
+                                    {/* Botões de Marcar Presença */}
+                                    {(sessionStatus === "pending" || sessionStatus === "scheduled") && (
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-green-600 border-green-600 hover:bg-green-50"
+                                          onClick={() => markAttendance.mutate({ 
+                                            appointmentId: session.id, 
+                                            status: "present" 
+                                          })}
+                                          disabled={markAttendance.isPending}
+                                        >
+                                          <UserCheck className="h-4 w-4 mr-1" />
+                                          Presente
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-red-600 border-red-600 hover:bg-red-50"
+                                          onClick={() => markAttendance.mutate({ 
+                                            appointmentId: session.id, 
+                                            status: "absent" 
+                                          })}
+                                          disabled={markAttendance.isPending}
+                                        >
+                                          <UserX className="h-4 w-4 mr-1" />
+                                          Faltou
+                                        </Button>
+                                      </div>
+                                    )}
+
+                                    {/* Botão Registrar Pagamento */}
+                                    {isPresent && payingSessionId !== session.id && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-success border-success hover:bg-success/10"
+                                        onClick={() => setPayingSessionId(session.id)}
+                                      >
+                                        <DollarSign className="h-4 w-4 mr-1" />
+                                        Registrar Pagamento
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Formulário de Pagamento Inline */}
+                                {payingSessionId === session.id && (
+                                  <div className="mt-4 pt-4 border-t space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-medium text-sm">
+                                        Registrar Pagamento
+                                      </h4>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => setPayingSessionId(null)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                      <div>
+                                        <label className="text-xs text-muted-foreground mb-1 block">
+                                          Valor (R$)
+                                        </label>
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          placeholder="0,00"
+                                          value={paymentForm.amount}
+                                          onChange={(e) =>
+                                            setPaymentForm({
+                                              ...paymentForm,
+                                              amount: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="text-xs text-muted-foreground mb-1 block">
+                                          Método
+                                        </label>
+                                        <Select
+                                          value={paymentForm.method}
+                                          onValueChange={(v) =>
+                                            setPaymentForm({ ...paymentForm, method: v })
+                                          }
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="pix">PIX</SelectItem>
+                                            <SelectItem value="dinheiro">
+                                              Dinheiro
+                                            </SelectItem>
+                                            <SelectItem value="cartao_debito">
+                                              Débito
+                                            </SelectItem>
+                                            <SelectItem value="cartao_credito">
+                                              Crédito
+                                            </SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      <div>
+                                        <label className="text-xs text-muted-foreground mb-1 block">
+                                          Nº Nota Fiscal
+                                        </label>
+                                        <Input
+                                          placeholder="Opcional"
+                                          value={paymentForm.invoiceNumber}
+                                          onChange={(e) =>
+                                            setPaymentForm({
+                                              ...paymentForm,
+                                              invoiceNumber: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </div>
+
+                                      <div className="flex items-end">
+                                        <Button
+                                          className="w-full bg-success hover:bg-success/90"
+                                          onClick={() => handleSubmitPayment(session.id)}
+                                          disabled={registerPayment.isPending}
+                                        >
+                                          {registerPayment.isPending ? (
+                                            "Salvando..."
+                                          ) : (
+                                            <>
+                                              <CheckCircle className="h-4 w-4 mr-1" />
+                                              Confirmar
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                          <div>
-                            <label className="text-xs text-muted-foreground mb-1 block">
-                              Valor (R$)
-                            </label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0,00"
-                              value={paymentForm.amount}
-                              onChange={(e) =>
-                                setPaymentForm({
-                                  ...paymentForm,
-                                  amount: e.target.value,
-                                })
-                              }
-                            />
+                        {/* Linha separadora entre pacotes */}
+                        {groupIndex < groupedSessions.filter(g => g.sessions.length > 0).length - 1 && (
+                          <div className="flex items-center gap-3 py-2">
+                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                            <span className="text-xs text-muted-foreground font-medium">
+                              Pacote Anterior
+                            </span>
+                            <div className="flex-1 h-px bg-gradient-to-r from-border via-border to-transparent" />
                           </div>
-
-                          <div>
-                            <label className="text-xs text-muted-foreground mb-1 block">
-                              Método
-                            </label>
-                            <Select
-                              value={paymentForm.method}
-                              onValueChange={(v) =>
-                                setPaymentForm({ ...paymentForm, method: v })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pix">PIX</SelectItem>
-                                <SelectItem value="dinheiro">
-                                  Dinheiro
-                                </SelectItem>
-                                <SelectItem value="cartao_debito">
-                                  Débito
-                                </SelectItem>
-                                <SelectItem value="cartao_credito">
-                                  Crédito
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div>
-                            <label className="text-xs text-muted-foreground mb-1 block">
-                              Nº Nota Fiscal
-                            </label>
-                            <Input
-                              placeholder="Opcional"
-                              value={paymentForm.invoiceNumber}
-                              onChange={(e) =>
-                                setPaymentForm({
-                                  ...paymentForm,
-                                  invoiceNumber: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-
-                          <div className="flex items-end">
-                            <Button
-                              className="w-full bg-success hover:bg-success/90"
-                              onClick={() => handleSubmitPayment(session.id)}
-                              disabled={registerPayment.isPending}
-                            >
-                              {registerPayment.isPending ? (
-                                "Salvando..."
-                              ) : (
-                                <>
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Confirmar
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  });
+              })()}
             </div>
           )}
         </CardContent>
