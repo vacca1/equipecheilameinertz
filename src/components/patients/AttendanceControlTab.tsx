@@ -110,6 +110,73 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     },
   });
 
+  // Marcar presença/falta
+  const markAttendance = useMutation({
+    mutationFn: async ({
+      appointmentId,
+      status,
+    }: {
+      appointmentId: string;
+      status: "present" | "absent";
+    }) => {
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          attendance_status: status,
+          status: status === "present" ? "completed" : "cancelled",
+        })
+        .eq("id", appointmentId);
+
+      if (error) throw error;
+
+      // Se marcou presente e tem pacote ativo, descontar sessão
+      if (status === "present" && activePackage) {
+        const newUsedSessions = (activePackage.used_sessions || 0) + 1;
+        const newStatus = newUsedSessions >= activePackage.total_sessions ? "completed" : "active";
+        
+        await supabase
+          .from("patient_packages")
+          .update({
+            used_sessions: newUsedSessions,
+            status: newStatus,
+          })
+          .eq("id", activePackage.id);
+      }
+
+      return true;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["attendance-control", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["active-package", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-packages", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-credits", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-session-stats", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["appointments"],
+      });
+      
+      toast.success(
+        variables.status === "present"
+          ? "✅ Presença registrada!"
+          : "❌ Falta registrada!"
+      );
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Erro ao registrar presença");
+    },
+  });
+
   // Registrar pagamento
   const registerPayment = useMutation({
     mutationFn: async ({
@@ -482,6 +549,38 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                           {statusInfo.icon}
                           <span className="ml-1">{statusInfo.label}</span>
                         </Badge>
+
+                        {/* Botões de Marcar Presença (se ainda não tem status definido) */}
+                        {(sessionStatus === "pending" || sessionStatus === "scheduled") && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => markAttendance.mutate({ 
+                                appointmentId: session.id, 
+                                status: "present" 
+                              })}
+                              disabled={markAttendance.isPending}
+                            >
+                              <UserCheck className="h-4 w-4 mr-1" />
+                              Presente
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              onClick={() => markAttendance.mutate({ 
+                                appointmentId: session.id, 
+                                status: "absent" 
+                              })}
+                              disabled={markAttendance.isPending}
+                            >
+                              <UserX className="h-4 w-4 mr-1" />
+                              Faltou
+                            </Button>
+                          </div>
+                        )}
 
                         {/* Botão Registrar Pagamento (se presente) */}
                         {isPresent && payingSessionId !== session.id && (
