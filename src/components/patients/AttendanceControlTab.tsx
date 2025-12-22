@@ -724,10 +724,23 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
 
                                   <div className="flex flex-col items-end gap-2">
                                     {/* Status de Presença */}
-                                    <Badge className={statusInfo.color}>
-                                      {statusInfo.icon}
-                                      <span className="ml-1">{statusInfo.label}</span>
-                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                      <Badge className={statusInfo.color}>
+                                        {statusInfo.icon}
+                                        <span className="ml-1">{statusInfo.label}</span>
+                                      </Badge>
+                                      
+                                      {/* Nome do Pacote Vinculado */}
+                                      {session.package_id && (() => {
+                                        const linkedPackage = allPackages.find(p => p.id === session.package_id);
+                                        return linkedPackage ? (
+                                          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                                            <Package className="h-3 w-3 mr-1" />
+                                            {linkedPackage.package?.name || "Pacote"}
+                                          </Badge>
+                                        ) : null;
+                                      })()}
+                                    </div>
 
                                     {/* Botões de Marcar Presença */}
                                     {(sessionStatus === "pending" || sessionStatus === "scheduled") && (
