@@ -49,6 +49,7 @@ import {
 import { PatientFormModal } from "@/components/PatientFormModal";
 import { SessionModal } from "@/components/SessionModal";
 import { PatientAppointmentsTab } from "@/components/patients/PatientAppointmentsTab";
+import { AttendanceControlTab } from "@/components/patients/AttendanceControlTab";
 import { PatientFinancialTab } from "@/components/patients/PatientFinancialTab";
 import { PatientPackagesCard } from "@/components/patients/PatientPackagesCard";
 import { PatientCreditsCard } from "@/components/patients/PatientCreditsCard";
@@ -533,176 +534,10 @@ export default function Patients() {
                 </TabsContent>
 
                 <TabsContent value="sessions" className="space-y-4">
-                  {/* Cards de Resumo */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                          Total de Sessões
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{totalSessions}</div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                          Próxima Sessão
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-sm font-medium">
-                          Não agendada
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                          Total Pago
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-success">
-                          R$ {totalPaid.toFixed(2)}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                          Saldo Pendente
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-warning">
-                          R$ {totalPending.toFixed(2)}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Filtros e Botão Registrar */}
-                  <div className="flex flex-wrap gap-2 items-center justify-between">
-                    <div className="flex gap-2">
-                      <Select
-                        value={sessionFilterTherapist}
-                        onValueChange={setSessionFilterTherapist}
-                      >
-                        <SelectTrigger className="w-[150px]">
-                          <Filter className="h-4 w-4 mr-2" />
-                          <SelectValue placeholder="Fisioterapeuta" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          <SelectItem value="Ana Falcão">Ana Falcão</SelectItem>
-                          <SelectItem value="Cheila">Cheila</SelectItem>
-                          <SelectItem value="Grazii">Grazii</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <Select
-                        value={sessionFilterPayment}
-                        onValueChange={setSessionFilterPayment}
-                      >
-                        <SelectTrigger className="w-[150px]">
-                          <SelectValue placeholder="Pagamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos</SelectItem>
-                          <SelectItem value="paid">Pago</SelectItem>
-                          <SelectItem value="pending">Pendente</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <Button onClick={() => setSessionModalOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Registrar Nova Sessão
-                    </Button>
-                  </div>
-
-                  {/* Tabela de Sessões */}
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Sessão Nº</TableHead>
-                          <TableHead>Fisioterapeuta</TableHead>
-                          <TableHead>Valor</TableHead>
-                          <TableHead>Pagamento</TableHead>
-                          <TableHead>Método</TableHead>
-                          <TableHead>Nota Fiscal</TableHead>
-                          <TableHead>Observações</TableHead>
-                          <TableHead>Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {patientSessions.map((session) => (
-                          <TableRow key={session.id}>
-                            <TableCell>{session.date ? format(new Date(session.date), 'dd/MM/yyyy') : ""}</TableCell>
-                            <TableCell className="font-medium">
-                              #{session.session_number}
-                            </TableCell>
-                            <TableCell>{session.therapist}</TableCell>
-                            <TableCell>R$ {(session.session_value || 0).toFixed(2)}</TableCell>
-                            <TableCell>
-                              {session.payment_status === "received" ? (
-                                <Badge variant="default" className="bg-success">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Pago
-                                </Badge>
-                              ) : (
-                                <Badge variant="warning">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  Pendente
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {getPaymentMethodLabel(session.payment_method || "")}
-                            </TableCell>
-                            <TableCell>
-                              {session.invoice_delivered ? (
-                                <Badge variant="default" className="bg-success">
-                                  <FileText className="h-3 w-3 mr-1" />
-                                  Sim
-                                </Badge>
-                              ) : (
-                                <Badge variant="destructive">
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  Não
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <span
-                                className="text-sm text-muted-foreground cursor-help"
-                                title={session.observations || ""}
-                              >
-                                {(session.observations || "").substring(0, 30)}{session.observations && session.observations.length > 30 ? "..." : ""}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Button variant="ghost" size="sm">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  <AttendanceControlTab 
+                    patientId={selectedPatient.id} 
+                    patientName={selectedPatient.name}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>
