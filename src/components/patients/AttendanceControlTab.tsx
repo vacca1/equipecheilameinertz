@@ -287,12 +287,13 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
   ).length;
 
   // Total de pagamentos vinculados
+  const paidSessionsCount = incomes.filter((i) => i.payment_status === "received").length;
   const totalPaid = incomes
     .filter((i) => i.payment_status === "received")
     .reduce((sum, i) => sum + Number(i.value || 0), 0);
 
   // Sessões presentes sem pagamento (aproximado)
-  const unpaidPresentSessions = presentCount - incomes.filter(i => i.payment_status === "received").length;
+  const unpaidPresentSessions = presentCount - paidSessionsCount;
   const sessionsNeedingPayment = Math.max(0, unpaidPresentSessions);
 
   // Progresso do pacote
@@ -444,7 +445,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
       )}
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -484,6 +485,22 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
               <div>
                 <p className="text-sm text-muted-foreground">Faltas</p>
                 <p className="text-2xl font-bold text-red-600">{absentCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-full">
+                <Receipt className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Sessões Pagas</p>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {paidSessionsCount}
+                </p>
               </div>
             </div>
           </CardContent>
