@@ -208,6 +208,85 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     },
   });
 
+  // Desfazer marcação de presença/falta
+  const undoAttendance = useMutation({
+    mutationFn: async ({
+      appointmentId,
+      packageId,
+    }: {
+      appointmentId: string;
+      packageId: string | null;
+    }) => {
+      // Se tinha pacote vinculado, devolver a sessão
+      if (packageId) {
+        const { data: currentPackage, error: fetchError } = await supabase
+          .from("patient_packages")
+          .select("*")
+          .eq("id", packageId)
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        if (currentPackage) {
+          const newUsedSessions = Math.max(0, (currentPackage.used_sessions || 0) - 1);
+          
+          const { error: packageError } = await supabase
+            .from("patient_packages")
+            .update({
+              used_sessions: newUsedSessions,
+              status: "active", // Reativar pacote se estava completo
+            })
+            .eq("id", packageId);
+
+          if (packageError) throw packageError;
+        }
+      }
+
+      // Resetar o appointment
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          attendance_status: null,
+          status: "scheduled",
+          package_id: null,
+        })
+        .eq("id", appointmentId);
+
+      if (error) throw error;
+
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["attendance-control", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["active-package", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["all-patient-packages", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-packages", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-credits", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-session-stats", patientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["appointments"],
+      });
+      
+      toast.success("⏪ Marcação desfeita! Sessão devolvida ao pacote.");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Erro ao desfazer marcação");
+    },
+  });
+
   // Registrar pagamento
   const registerPayment = useMutation({
     mutationFn: async ({
@@ -854,6 +933,23 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                       >
                                         <DollarSign className="h-4 w-4 mr-1" />
                                         Registrar Pagamento
+                                      </Button>
+                                    )}
+
+                                    {/* Botão Desfazer Marcação (presente ou ausente, sem pagamento) */}
+                                    {(sessionStatus === "present" || sessionStatus === "missed") && !isPaid && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-muted-foreground hover:text-foreground"
+                                        onClick={() => undoAttendance.mutate({
+                                          appointmentId: session.id,
+                                          packageId: session.package_id,
+                                        })}
+                                        disabled={undoAttendance.isPending}
+                                      >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Desfazer
                                       </Button>
                                     )}
                                   </div>
