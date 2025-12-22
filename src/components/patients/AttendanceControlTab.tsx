@@ -326,6 +326,18 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     return "scheduled";
   };
 
+  // Verificar se uma sessão foi paga (busca no incomes pela observação ou data)
+  const getSessionPayment = (session: AttendanceSession) => {
+    // Busca income que menciona o número da sessão ou que foi criado na mesma data
+    const sessionPayment = incomes.find((income) => {
+      const matchesSessionNumber = income.observations?.includes(`#${session.session_number}`);
+      const matchesDate = income.date === session.date;
+      return (matchesSessionNumber || matchesDate) && income.payment_status === "received";
+    });
+    
+    return sessionPayment;
+  };
+
   const statusConfig: Record<
     string,
     { label: string; color: string; icon: React.ReactNode }
@@ -350,6 +362,14 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
       color: "bg-blue-100 text-blue-800",
       icon: <Calendar className="h-4 w-4" />,
     },
+  };
+
+  const paymentMethodLabels: Record<string, string> = {
+    pix: "PIX",
+    dinheiro: "Dinheiro",
+    debito: "Débito",
+    credito: "Crédito",
+    transferencia: "Transferência",
   };
 
   if (isLoading) {
@@ -672,12 +692,19 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                             const isPresent = sessionStatus === "present";
                             const sessionNumber = session.session_number || (group.sessions.length - sessionIndex);
                             const totalPackageSessions = pkg?.total_sessions || group.sessions.length;
+                            
+                            // Verificar pagamento
+                            const payment = getSessionPayment(session);
+                            const isPaid = !!payment;
+                            const isUnpaidPresent = isPresent && !isPaid;
 
                             return (
                               <div
                                 key={session.id}
                                 className={`border rounded-lg p-4 transition-all ${
-                                  sessionStatus === "present"
+                                  isUnpaidPresent
+                                    ? "border-orange-300 bg-orange-50/50"
+                                    : sessionStatus === "present" && isPaid
                                     ? "border-green-200 bg-green-50/50"
                                     : sessionStatus === "missed"
                                     ? "border-red-200 bg-red-50/50"
@@ -712,6 +739,17 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                         {session.therapist}
                                       </div>
 
+                                      {/* Pagamento Info (quando pago) */}
+                                      {isPaid && payment && (
+                                        <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
+                                          <DollarSign className="h-4 w-4" />
+                                          R$ {Number(payment.value).toFixed(2).replace(".", ",")} 
+                                          <span className="text-green-600/70">
+                                            ({paymentMethodLabels[payment.payment_method || ""] || payment.payment_method || "N/A"})
+                                          </span>
+                                        </div>
+                                      )}
+
                                       {/* Nota Fiscal */}
                                       {session.invoice_number && (
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -723,12 +761,27 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                   </div>
 
                                   <div className="flex flex-col items-end gap-2">
-                                    {/* Status de Presença */}
-                                    <div className="flex items-center gap-2">
+                                    {/* Status de Presença e Pagamento */}
+                                    <div className="flex flex-wrap items-center gap-2 justify-end">
                                       <Badge className={statusInfo.color}>
                                         {statusInfo.icon}
                                         <span className="ml-1">{statusInfo.label}</span>
                                       </Badge>
+                                      
+                                      {/* Badge de Pagamento */}
+                                      {isPresent && (
+                                        isPaid ? (
+                                          <Badge className="bg-green-100 text-green-800">
+                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                            Pago
+                                          </Badge>
+                                        ) : (
+                                          <Badge className="bg-orange-100 text-orange-800">
+                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                            Pendente
+                                          </Badge>
+                                        )
+                                      )}
                                       
                                       {/* Nome do Pacote Vinculado */}
                                       {session.package_id && (() => {
@@ -774,12 +827,12 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                       </div>
                                     )}
 
-                                    {/* Botão Registrar Pagamento */}
-                                    {isPresent && payingSessionId !== session.id && (
+                                    {/* Botão Registrar Pagamento (só mostra se não pago) */}
+                                    {isUnpaidPresent && payingSessionId !== session.id && (
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="text-success border-success hover:bg-success/10"
+                                        className="text-orange-600 border-orange-600 hover:bg-orange-50"
                                         onClick={() => setPayingSessionId(session.id)}
                                       >
                                         <DollarSign className="h-4 w-4 mr-1" />
