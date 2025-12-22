@@ -134,28 +134,44 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
       appointmentId: string;
       status: "present" | "absent";
     }) => {
-      const { error } = await supabase
-        .from("appointments")
-        .update({
-          attendance_status: status,
-          status: status === "present" ? "completed" : "cancelled",
-        })
-        .eq("id", appointmentId);
-
-      if (error) throw error;
-
-      // Se marcou presente e tem pacote ativo, descontar sessão
+      // Se marcou presente e tem pacote ativo, vincular sessão ao pacote e descontar
       if (status === "present" && activePackage) {
         const newUsedSessions = (activePackage.used_sessions || 0) + 1;
         const newStatus = newUsedSessions >= activePackage.total_sessions ? "completed" : "active";
         
-        await supabase
+        // Atualiza appointment com o package_id vinculado
+        const { error: appointmentError } = await supabase
+          .from("appointments")
+          .update({
+            attendance_status: status,
+            status: "completed",
+            package_id: activePackage.id,
+          })
+          .eq("id", appointmentId);
+
+        if (appointmentError) throw appointmentError;
+
+        // Desconta sessão do pacote
+        const { error: packageError } = await supabase
           .from("patient_packages")
           .update({
             used_sessions: newUsedSessions,
             status: newStatus,
           })
           .eq("id", activePackage.id);
+
+        if (packageError) throw packageError;
+      } else {
+        // Apenas atualiza o status da presença
+        const { error } = await supabase
+          .from("appointments")
+          .update({
+            attendance_status: status,
+            status: status === "present" ? "completed" : "cancelled",
+          })
+          .eq("id", appointmentId);
+
+        if (error) throw error;
       }
 
       return true;
