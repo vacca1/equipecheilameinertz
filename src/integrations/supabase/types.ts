@@ -21,6 +21,7 @@ export type Database = {
           date: string
           duration: number | null
           id: string
+          invoice_number: string | null
           is_first_session: boolean | null
           notes: string | null
           package_id: string | null
@@ -29,6 +30,7 @@ export type Database = {
           repeat_until: string | null
           repeat_weekly: boolean | null
           room: string | null
+          session_number: number | null
           status: string | null
           therapist: string
           time: string
@@ -40,6 +42,7 @@ export type Database = {
           date: string
           duration?: number | null
           id?: string
+          invoice_number?: string | null
           is_first_session?: boolean | null
           notes?: string | null
           package_id?: string | null
@@ -48,6 +51,7 @@ export type Database = {
           repeat_until?: string | null
           repeat_weekly?: boolean | null
           room?: string | null
+          session_number?: number | null
           status?: string | null
           therapist: string
           time: string
@@ -59,6 +63,7 @@ export type Database = {
           date?: string
           duration?: number | null
           id?: string
+          invoice_number?: string | null
           is_first_session?: boolean | null
           notes?: string | null
           package_id?: string | null
@@ -67,6 +72,7 @@ export type Database = {
           repeat_until?: string | null
           repeat_weekly?: boolean | null
           room?: string | null
+          session_number?: number | null
           status?: string | null
           therapist?: string
           time?: string
