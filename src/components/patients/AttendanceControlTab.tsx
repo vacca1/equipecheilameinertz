@@ -782,12 +782,16 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
 
                         {/* Sessões do Pacote */}
                         <div className="space-y-2 ml-4 border-l-2 border-muted pl-4">
-                          {group.sessions.map((session, sessionIndex) => {
+                        {group.sessions.map((session, sessionIndex) => {
                             const sessionStatus = getSessionStatus(session);
                             const statusInfo = statusConfig[sessionStatus];
                             const isPresent = sessionStatus === "present";
-                            const sessionNumber = session.session_number || (group.sessions.length - sessionIndex);
-                            const totalPackageSessions = pkg?.total_sessions || group.sessions.length;
+                            
+                            // Calcular número da sessão DENTRO do pacote (não absoluto)
+                            // Sessões são ordenadas por data DESC, então invertemos a contagem
+                            const sessionsInPackage = group.sessions.length;
+                            const positionInPackage = sessionsInPackage - sessionIndex;
+                            const totalPackageSessions = pkg?.total_sessions || sessionsInPackage;
                             
                             // Verificar pagamento
                             const payment = getSessionPayment(session);
@@ -809,10 +813,10 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                               >
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-start gap-4">
-                                    {/* Número da Sessão */}
+                                    {/* Número da Sessão dentro do Pacote */}
                                     <div className="text-center min-w-[60px]">
                                       <div className="text-2xl font-bold text-primary">
-                                        #{sessionNumber}
+                                        {positionInPackage}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
                                         de {totalPackageSessions}
