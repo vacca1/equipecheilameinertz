@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -420,6 +420,27 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     return sessionPayment;
   };
 
+  // Calcular contagem de sessões filtradas
+  const filteredSessionsCount = useMemo(() => {
+    if (statusFilter === "all") return sessions.length;
+    
+    return sessions.filter((session) => {
+      const status = getSessionStatus(session);
+      const payment = getSessionPayment(session);
+      const isPaid = !!payment;
+      const isPresent = session.attendance_status === "present";
+      
+      switch (statusFilter) {
+        case "present": return status === "present";
+        case "missed": return status === "missed";
+        case "scheduled": return status === "scheduled";
+        case "paid": return isPaid;
+        case "unpaid": return isPresent && !isPaid;
+        default: return true;
+      }
+    }).length;
+  }, [sessions, statusFilter, incomes]);
+
   const statusConfig: Record<
     string,
     { label: string; color: string; icon: React.ReactNode }
@@ -636,7 +657,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
               Histórico de Sessões
             </CardTitle>
             
-            {/* Filtro de Status */}
+            {/* Filtro de Status com Badge */}
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -652,6 +673,22 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                   <SelectItem value="unpaid">⚠️ Pendente</SelectItem>
                 </SelectContent>
               </Select>
+              <Badge 
+                variant={statusFilter === "all" ? "secondary" : "default"}
+                className={`${
+                  statusFilter === "unpaid" 
+                    ? "bg-orange-500 hover:bg-orange-600" 
+                    : statusFilter === "paid"
+                    ? "bg-green-500 hover:bg-green-600"
+                    : statusFilter === "missed"
+                    ? "bg-red-500 hover:bg-red-600"
+                    : statusFilter === "present"
+                    ? "bg-emerald-500 hover:bg-emerald-600"
+                    : ""
+                }`}
+              >
+                {filteredSessionsCount}
+              </Badge>
             </div>
           </div>
         </CardHeader>
