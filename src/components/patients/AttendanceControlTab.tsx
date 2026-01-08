@@ -602,14 +602,26 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
         </Card>
       </div>
 
-      {/* Alerta de sessões sem pagamento */}
+      {/* Alerta DESTACADO de sessões sem pagamento */}
       {sessionsNeedingPayment > 0 && (
-        <Alert className="border-warning bg-warning/10">
-          <AlertTriangle className="h-4 w-4 text-warning" />
-          <AlertDescription className="text-warning font-medium">
-            ⚠️ {sessionsNeedingPayment} sessão(ões) presente(s) sem pagamento
-            registrado!
-          </AlertDescription>
+        <Alert className="border-2 border-orange-400 bg-gradient-to-r from-orange-100 to-amber-50 shadow-lg animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-500 rounded-full">
+              <AlertTriangle className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <AlertDescription className="text-orange-800 font-bold text-base">
+                ⚠️ ATENÇÃO: {sessionsNeedingPayment} sessão(ões) presente(s) sem pagamento!
+              </AlertDescription>
+              <p className="text-sm text-orange-600 mt-1">
+                Role abaixo para registrar os pagamentos pendentes
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-orange-600">{sessionsNeedingPayment}</p>
+              <p className="text-xs text-orange-500">pendente{sessionsNeedingPayment > 1 ? 's' : ''}</p>
+            </div>
+          </div>
         </Alert>
       )}
 
