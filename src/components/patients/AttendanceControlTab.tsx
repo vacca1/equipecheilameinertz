@@ -28,6 +28,7 @@ import {
   User,
   Receipt,
   X,
+  Filter,
 } from "lucide-react";
 import { format, parseISO, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,6 +56,7 @@ interface AttendanceSession {
 export function AttendanceControlTab({ patientId, patientName }: AttendanceControlTabProps) {
   const queryClient = useQueryClient();
   const [payingSessionId, setPayingSessionId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     method: "pix",
@@ -627,11 +629,31 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
 
       {/* Lista de Sessões Agrupadas por Pacote */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Histórico de Sessões
-          </CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Histórico de Sessões
+            </CardTitle>
+            
+            {/* Filtro de Status */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px] h-9">
+                  <SelectValue placeholder="Filtrar por..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="present">✅ Presente</SelectItem>
+                  <SelectItem value="missed">❌ Faltou</SelectItem>
+                  <SelectItem value="scheduled">📅 Agendado</SelectItem>
+                  <SelectItem value="paid">💰 Pago</SelectItem>
+                  <SelectItem value="unpaid">⚠️ Pendente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {sessions.length === 0 ? (
@@ -645,6 +667,28 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
           ) : (
             <div className="space-y-4">
               {(() => {
+                // Função auxiliar para verificar se sessão passa no filtro
+                const passesFilter = (session: AttendanceSession) => {
+                  if (statusFilter === "all") return true;
+                  
+                  const status = getSessionStatus(session);
+                  const payment = getSessionPayment(session);
+                  const isPaid = !!payment;
+                  const isPresent = session.attendance_status === "present";
+                  
+                  switch (statusFilter) {
+                    case "present": return status === "present";
+                    case "missed": return status === "missed";
+                    case "scheduled": return status === "scheduled";
+                    case "paid": return isPaid;
+                    case "unpaid": return isPresent && !isPaid;
+                    default: return true;
+                  }
+                };
+                
+                // Aplicar filtro às sessões
+                const filteredSessions = sessions.filter(passesFilter);
+                
                 // Agrupar sessões por pacote
                 const groupedSessions: {
                   packageInfo: typeof allPackages[0] | null;
@@ -688,7 +732,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                   for (let i = 0; i < allPackages.length; i++) {
                     const pkg = allPackages[i];
                     const pkgTotalSessions = pkg.total_sessions || 10;
-                    const pkgSessions = sessions.slice(sessionIndex, sessionIndex + pkgTotalSessions);
+                    const pkgSessions = filteredSessions.slice(sessionIndex, sessionIndex + pkgTotalSessions);
                     
                     if (pkgSessions.length > 0) {
                       groupedSessions[i].sessions = pkgSessions;
@@ -697,20 +741,41 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                   }
 
                   // Sessões sem pacote (antes de qualquer pacote)
-                  if (sessionIndex < sessions.length) {
+                  if (sessionIndex < filteredSessions.length) {
                     groupedSessions.push({
                       packageInfo: null,
-                      sessions: sessions.slice(sessionIndex),
+                      sessions: filteredSessions.slice(sessionIndex),
                       packageIndex: -1,
                     });
                   }
                 } else {
-                  // Sem pacotes, mostrar todas as sessões
+                  // Sem pacotes, mostrar todas as sessões filtradas
                   groupedSessions.push({
                     packageInfo: null,
-                    sessions: sessions,
+                    sessions: filteredSessions,
                     packageIndex: -1,
                   });
+                }
+                
+                // Mostrar mensagem se filtro não retornou resultados
+                if (filteredSessions.length === 0 && sessions.length > 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <Filter className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                      <h3 className="font-medium text-lg">Nenhuma sessão encontrada</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Não há sessões com o filtro "{statusFilter}" selecionado
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-3"
+                        onClick={() => setStatusFilter("all")}
+                      >
+                        Limpar filtro
+                      </Button>
+                    </div>
+                  );
                 }
 
                 // Filtrar grupos vazios e renderizar
