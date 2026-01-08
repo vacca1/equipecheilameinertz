@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -58,13 +57,6 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
   const queryClient = useQueryClient();
   const [payingSessionId, setPayingSessionId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
-  const [batchPaymentOpen, setBatchPaymentOpen] = useState(false);
-  const [batchPaymentForm, setBatchPaymentForm] = useState({
-    amount: "",
-    method: "pix",
-    invoiceNumber: "",
-  });
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     method: "pix",
@@ -359,65 +351,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     },
   });
 
-  // Pagamento em lote
-  const batchPayment = useMutation({
-    mutationFn: async ({
-      sessionIds,
-      amountPerSession,
-      paymentMethod,
-      invoiceNumber,
-    }: {
-      sessionIds: string[];
-      amountPerSession: number;
-      paymentMethod: string;
-      invoiceNumber: string;
-    }) => {
-      for (const sessionId of sessionIds) {
-        const session = sessions.find((s) => s.id === sessionId);
-        if (!session) continue;
-
-        // Criar income para cada sessão
-        const { error: incomeError } = await supabase.from("incomes").insert({
-          patient_name: patientName,
-          therapist: session.therapist || "",
-          value: amountPerSession,
-          date: new Date().toISOString().split("T")[0],
-          payment_method: paymentMethod,
-          payment_status: "received",
-          invoice_delivered: !!invoiceNumber,
-          sessions_covered: 1,
-          observations: `Pagamento sessão #${session.session_number || ""} (lote)`,
-        });
-
-        if (incomeError) throw incomeError;
-
-        // Atualizar appointment com invoice_number
-        if (invoiceNumber) {
-          const { error: aptError } = await supabase
-            .from("appointments")
-            .update({ invoice_number: invoiceNumber })
-            .eq("id", sessionId);
-
-          if (aptError) throw aptError;
-        }
-      }
-      return true;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance-control", patientId] });
-      queryClient.invalidateQueries({ queryKey: ["patient-incomes", patientName] });
-      queryClient.invalidateQueries({ queryKey: ["patient-credits", patientId] });
-      toast.success(`💰 ${selectedSessions.length} sessões pagas com sucesso!`);
-      setSelectedSessions([]);
-      setBatchPaymentOpen(false);
-      setBatchPaymentForm({ amount: "", method: "pix", invoiceNumber: "" });
-    },
-    onError: (error) => {
-      console.error(error);
-      toast.error("Erro ao processar pagamento em lote");
-    },
-  });
-
+  // Calcular estatísticas
   const pastSessions = sessions.filter((s) => {
     try {
       return isPast(parseISO(s.date));
@@ -693,7 +627,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
 
       {/* Alerta DESTACADO de sessões sem pagamento */}
       {sessionsNeedingPayment > 0 && (
-        <Alert className="border-2 border-orange-400 bg-gradient-to-r from-orange-100 to-amber-50 shadow-lg">
+        <Alert className="border-2 border-orange-400 bg-gradient-to-r from-orange-100 to-amber-50 shadow-lg animate-pulse">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-500 rounded-full">
               <AlertTriangle className="h-5 w-5 text-white" />
@@ -703,7 +637,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                 ⚠️ ATENÇÃO: {sessionsNeedingPayment} sessão(ões) presente(s) sem pagamento!
               </AlertDescription>
               <p className="text-sm text-orange-600 mt-1">
-                Selecione sessões abaixo para pagamento em lote
+                Role abaixo para registrar os pagamentos pendentes
               </p>
             </div>
             <div className="text-right">
@@ -712,112 +646,6 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
             </div>
           </div>
         </Alert>
-      )}
-
-      {/* Barra de Ações para Pagamento em Lote */}
-      {selectedSessions.length > 0 && (
-        <Card className="border-2 border-primary bg-primary/5">
-          <CardContent className="py-3">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-primary text-white text-base px-3 py-1">
-                  {selectedSessions.length} sessão(ões) selecionada(s)
-                </Badge>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setSelectedSessions([])}
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Limpar seleção
-                </Button>
-              </div>
-              <Button 
-                onClick={() => setBatchPaymentOpen(true)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Pagar {selectedSessions.length} sessões
-              </Button>
-            </div>
-            
-            {/* Formulário de Pagamento em Lote */}
-            {batchPaymentOpen && (
-              <div className="mt-4 p-4 bg-background rounded-lg border space-y-3">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Pagamento em Lote - {selectedSessions.length} sessões
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-sm text-muted-foreground">Valor por sessão (R$)</label>
-                    <Input
-                      type="number"
-                      placeholder="90,00"
-                      value={batchPaymentForm.amount}
-                      onChange={(e) => setBatchPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
-                    />
-                    {batchPaymentForm.amount && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Total: R$ {(parseFloat(batchPaymentForm.amount) * selectedSessions.length).toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground">Método</label>
-                    <Select 
-                      value={batchPaymentForm.method} 
-                      onValueChange={(v) => setBatchPaymentForm(prev => ({ ...prev, method: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pix">PIX</SelectItem>
-                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                        <SelectItem value="debito">Cartão Débito</SelectItem>
-                        <SelectItem value="credito">Cartão Crédito</SelectItem>
-                        <SelectItem value="transferencia">Transferência</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground">Nota Fiscal (opcional)</label>
-                    <Input
-                      placeholder="Nº da NF"
-                      value={batchPaymentForm.invoiceNumber}
-                      onChange={(e) => setBatchPaymentForm(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setBatchPaymentOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      const amount = parseFloat(batchPaymentForm.amount);
-                      if (!amount || amount <= 0) {
-                        toast.error("Informe um valor válido por sessão");
-                        return;
-                      }
-                      batchPayment.mutate({
-                        sessionIds: selectedSessions,
-                        amountPerSession: amount,
-                        paymentMethod: batchPaymentForm.method,
-                        invoiceNumber: batchPaymentForm.invoiceNumber,
-                      });
-                    }}
-                    disabled={batchPayment.isPending}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {batchPayment.isPending ? "Processando..." : `Confirmar R$ ${(parseFloat(batchPaymentForm.amount || "0") * selectedSessions.length).toFixed(2)}`}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       )}
 
       {/* Lista de Sessões Agrupadas por Pacote */}
@@ -1099,23 +927,6 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                               >
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-start gap-4">
-                                    {/* Checkbox para seleção (apenas sessões presentes não pagas) */}
-                                    {isUnpaidPresent && (
-                                      <div className="flex items-center pt-2">
-                                        <Checkbox
-                                          id={`select-${session.id}`}
-                                          checked={selectedSessions.includes(session.id)}
-                                          onCheckedChange={(checked) => {
-                                            if (checked) {
-                                              setSelectedSessions(prev => [...prev, session.id]);
-                                            } else {
-                                              setSelectedSessions(prev => prev.filter(id => id !== session.id));
-                                            }
-                                          }}
-                                        />
-                                      </div>
-                                    )}
-                                    
                                     {/* Número da Sessão dentro do Pacote */}
                                     <div className="text-center min-w-[60px]">
                                       <div className="text-2xl font-bold text-primary">
