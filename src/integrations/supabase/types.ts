@@ -335,6 +335,62 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_clinical_assessments: {
+        Row: {
+          assessment_date: string
+          clinical_history: string | null
+          created_at: string | null
+          diagnosis: string
+          id: string
+          is_initial_assessment: boolean | null
+          main_complaint: string | null
+          observations: string | null
+          patient_id: string
+          physical_exam: string | null
+          requesting_doctor: string | null
+          treatment_plan: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assessment_date?: string
+          clinical_history?: string | null
+          created_at?: string | null
+          diagnosis: string
+          id?: string
+          is_initial_assessment?: boolean | null
+          main_complaint?: string | null
+          observations?: string | null
+          patient_id: string
+          physical_exam?: string | null
+          requesting_doctor?: string | null
+          treatment_plan?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assessment_date?: string
+          clinical_history?: string | null
+          created_at?: string | null
+          diagnosis?: string
+          id?: string
+          is_initial_assessment?: boolean | null
+          main_complaint?: string | null
+          observations?: string | null
+          patient_id?: string
+          physical_exam?: string | null
+          requesting_doctor?: string | null
+          treatment_plan?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_clinical_assessments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_files: {
         Row: {
           created_at: string | null
