@@ -1805,15 +1805,28 @@ export function AttendanceControlTab({ patientId, patientName, healthPlan }: Att
                                         )
                                       )}
                                       
-                                      {/* Nome do Pacote Vinculado */}
+                                      {/* Nome do Pacote/Guia Vinculado com Código */}
                                       {session.package_id && (() => {
                                         const linkedPackage = allPackages.find(p => p.id === session.package_id);
-                                        return linkedPackage ? (
+                                        if (!linkedPackage) return null;
+                                        
+                                        // Se é guia de convênio, exibir código da guia
+                                        if (linkedPackage.is_health_plan_authorization) {
+                                          return (
+                                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 font-mono">
+                                              <ClipboardList className="h-3 w-3 mr-1" />
+                                              Guia: {linkedPackage.authorization_code || "N/A"}
+                                            </Badge>
+                                          );
+                                        }
+                                        
+                                        // Pacote regular
+                                        return (
                                           <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
                                             <Package className="h-3 w-3 mr-1" />
                                             {linkedPackage.package?.name || "Pacote"}
                                           </Badge>
-                                        ) : null;
+                                        );
                                       })()}
                                     </div>
 
