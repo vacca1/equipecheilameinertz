@@ -17,7 +17,7 @@ const SkyToggle = () => {
   };
 
   if (!mounted) {
-    return <StyledWrapper><div style={{ width: '168.75px', height: '75px' }} /></StyledWrapper>;
+    return <StyledWrapper><div style={{ width: '90px', height: '40px' }} /></StyledWrapper>;
   }
 
   return (
@@ -53,7 +53,7 @@ const SkyToggle = () => {
 
 const StyledWrapper = styled.div`
   .theme-switch {
-    --toggle-size: 30px;
+    --toggle-size: 16px;
     --container-width: 5.625em;
     --container-height: 2.5em;
     --container-radius: 6.25em;
