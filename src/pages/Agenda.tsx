@@ -379,45 +379,83 @@ const Agenda = () => {
                                       height: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 64 - 8}px`,
                                     }}
                                     className={cn(
-                                      "absolute inset-x-1 top-1 z-10 p-2 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2 overflow-hidden",
-                                      getStatusColor(appointmentsAtTime[0].status),
-                                      appointmentsAtTime[0].status === "cancelled" && "line-through opacity-70"
+                                      "absolute inset-x-1 top-1 z-10 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2 overflow-hidden",
+                                      appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status),
+                                      appointmentsAtTime.length === 1 && appointmentsAtTime[0].status === "cancelled" && "line-through opacity-70",
+                                      appointmentsAtTime.length > 1 && "bg-background border-primary/30 flex flex-col"
                                     )}
                                   >
-                                    <div className="flex items-start justify-between gap-1">
-                                      <div className="font-semibold truncate flex-1 space-y-1">
+                                    {appointmentsAtTime.length === 1 ? (
+                                      // Single patient layout
+                                      <div className="p-2 h-full">
+                                        <div className="flex items-start justify-between gap-1">
+                                          <div className="font-semibold truncate flex-1">
+                                            {appointmentsAtTime[0].patientName}
+                                          </div>
+                                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                            <div className="flex items-center gap-1">
+                                              {getStatusIcon(appointmentsAtTime[0].status)}
+                                              {appointmentsAtTime[0].notes && (
+                                                <MessageSquare className="w-3 h-3 text-primary" />
+                                              )}
+                                              {appointmentsAtTime[0].hasInvoice && (
+                                                <FileText className="w-3 h-3 text-success" />
+                                              )}
+                                            </div>
+                                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                              {appointmentsAtTime[0].duration}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                        <div className="text-xs opacity-80 mt-0.5 truncate">
+                                          {appointmentsAtTime[0].therapist}
+                                        </div>
+                                        {appointmentsAtTime[0].room && (
+                                          <div className="text-xs opacity-70 mt-0.5">
+                                            {appointmentsAtTime[0].room}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      // Dual patient layout - split view
+                                      <div className="flex flex-1 h-full">
                                         {appointmentsAtTime.map((apt, aptIdx) => (
-                                          <div key={apt.id} className={cn(aptIdx > 0 && "text-[10px]")}>
-                                            {apt.patientName}
+                                          <div
+                                            key={apt.id}
+                                            className={cn(
+                                              "flex-1 p-1.5 flex flex-col",
+                                              getStatusColor(apt.status),
+                                              apt.status === "cancelled" && "line-through opacity-70",
+                                              aptIdx === 0 && "rounded-l-md border-r border-border/50",
+                                              aptIdx === 1 && "rounded-r-md"
+                                            )}
+                                          >
+                                            <div className="flex items-start justify-between gap-0.5">
+                                              <div className="font-semibold text-[10px] leading-tight truncate flex-1">
+                                                {apt.patientName}
+                                              </div>
+                                              <div className="flex items-center gap-0.5 flex-shrink-0">
+                                                {getStatusIcon(apt.status)}
+                                                {apt.notes && (
+                                                  <MessageSquare className="w-2.5 h-2.5 text-primary" />
+                                                )}
+                                                {apt.hasInvoice && (
+                                                  <FileText className="w-2.5 h-2.5 text-success" />
+                                                )}
+                                              </div>
+                                            </div>
+                                            {apt.room && (
+                                              <div className="text-[9px] opacity-70 mt-0.5 truncate">
+                                                {apt.room}
+                                              </div>
+                                            )}
                                           </div>
                                         ))}
                                       </div>
-                                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                        <div className="flex items-center gap-1">
-                                          {getStatusIcon(appointmentsAtTime[0].status)}
-                                          {appointmentsAtTime[0].notes && (
-                                            <MessageSquare className="w-3 h-3 text-primary" />
-                                          )}
-                                          {appointmentsAtTime[0].hasInvoice && (
-                                            <FileText className="w-3 h-3 text-success" />
-                                          )}
-                                        </div>
-                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
-                                          {appointmentsAtTime[0].duration}
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                    <div className="text-xs opacity-80 mt-0.5 truncate">
-                                      {appointmentsAtTime[0].therapist}
-                                    </div>
-                                    {appointmentsAtTime[0].room && (
-                                      <div className="text-xs opacity-70 mt-0.5">
-                                        {appointmentsAtTime[0].room}
-                                      </div>
                                     )}
                                     {appointmentsAtTime.length > 1 && (
-                                      <div className="text-[10px] opacity-60 mt-1">
-                                        Pilates Dupla ({appointmentsAtTime.length} pacientes)
+                                      <div className="text-[9px] text-primary font-medium text-center py-0.5 bg-primary/10 border-t border-primary/20">
+                                        🤸 Pilates Dupla
                                       </div>
                                     )}
                                   </button>
@@ -545,28 +583,69 @@ const Agenda = () => {
                           <button
                             onClick={() => handleCellClick(day, time)}
                             className={cn(
-                              "flex-1 p-2 sm:p-3 rounded-lg text-left transition-all border-2",
-                              getStatusColor(appointmentsAtTime[0].status)
+                              "flex-1 rounded-lg text-left transition-all border-2 overflow-hidden",
+                              appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status),
+                              appointmentsAtTime.length > 1 && "bg-background border-primary/30"
                             )}
                           >
-                            <div className="space-y-2">
-                              {appointmentsAtTime.map((apt, aptIdx) => (
-                                <div key={apt.id} className={cn(aptIdx > 0 && "pt-2 border-t border-border/30")}>
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <div className="font-semibold text-sm sm:text-base truncate">{apt.patientName}</div>
-                                      <div className="text-xs sm:text-sm opacity-80 mt-1">
-                                        {apt.therapist}
+                            {appointmentsAtTime.length === 1 ? (
+                              // Single patient layout
+                              <div className="p-2 sm:p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="font-semibold text-sm sm:text-base truncate">{appointmentsAtTime[0].patientName}</div>
+                                    <div className="text-xs sm:text-sm opacity-80 mt-1">
+                                      {appointmentsAtTime[0].therapist}
+                                    </div>
+                                    {appointmentsAtTime[0].room && (
+                                      <div className="text-xs opacity-70 mt-1">
+                                        {appointmentsAtTime[0].room}
                                       </div>
-                                      {apt.room && (
-                                        <div className="text-xs opacity-70 mt-1">
-                                          {apt.room}
-                                        </div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                    <div className="flex items-center gap-1">
+                                      {getStatusIcon(appointmentsAtTime[0].status)}
+                                      {appointmentsAtTime[0].notes && (
+                                        <MessageSquare className="w-3 h-3 text-primary" />
+                                      )}
+                                      {appointmentsAtTime[0].hasInvoice && (
+                                        <FileText className="w-3 h-3 text-success" />
                                       )}
                                     </div>
-                                    {aptIdx === 0 && (
-                                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                        <div className="flex items-center gap-1">
+                                    <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                      {appointmentsAtTime[0].duration}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              // Dual patient layout - split view
+                              <div className="flex flex-col">
+                                <div className="flex">
+                                  {appointmentsAtTime.map((apt, aptIdx) => (
+                                    <div
+                                      key={apt.id}
+                                      className={cn(
+                                        "flex-1 p-2 sm:p-3",
+                                        getStatusColor(apt.status),
+                                        apt.status === "cancelled" && "line-through opacity-70",
+                                        aptIdx === 0 && "border-r border-border/50"
+                                      )}
+                                    >
+                                      <div className="flex items-start justify-between gap-1">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="font-semibold text-xs sm:text-sm truncate">{apt.patientName}</div>
+                                          <div className="text-[10px] sm:text-xs opacity-80 mt-0.5">
+                                            {apt.therapist}
+                                          </div>
+                                          {apt.room && (
+                                            <div className="text-[10px] opacity-70 mt-0.5 truncate">
+                                              {apt.room}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-0.5 flex-shrink-0">
                                           {getStatusIcon(apt.status)}
                                           {apt.notes && (
                                             <MessageSquare className="w-3 h-3 text-primary" />
@@ -575,20 +654,15 @@ const Agenda = () => {
                                             <FileText className="w-3 h-3 text-success" />
                                           )}
                                         </div>
-                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
-                                          {apt.duration}
-                                        </Badge>
                                       </div>
-                                    )}
-                                  </div>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                              {appointmentsAtTime.length > 1 && (
-                                <div className="text-xs text-primary font-medium pt-2 border-t border-border">
-                                  🤸 Pilates Dupla ({appointmentsAtTime.length} pacientes)
+                                <div className="text-xs text-primary font-medium text-center py-1 bg-primary/10 border-t border-primary/20">
+                                  🤸 Pilates Dupla
                                 </div>
-                              )}
-                            </div>
+                              </div>
+                            )}
                           </button>
                         ) : occupiedInfo.occupied ? (
                           // Slot ocupado - não clicável, visualmente sutil
