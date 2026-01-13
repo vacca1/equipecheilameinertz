@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import SkyToggle from "@/components/ui/sky-toggle";
 const navigation = [
   { name: "Agenda", href: "/agenda", icon: Calendar },
   { name: "Pacientes", href: "/patients", icon: Users },
@@ -78,11 +78,20 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </nav>
 
-          {/* User Section */}
+          {/* Theme Toggle & User Section */}
           <div className={cn(
-            "p-3 border-t border-sidebar-border",
-            sidebarCollapsed ? "flex justify-center" : ""
+            "p-3 border-t border-sidebar-border space-y-3",
+            sidebarCollapsed ? "flex flex-col items-center" : ""
           )}>
+            {/* Theme Toggle */}
+            <div className={cn(
+              "flex",
+              sidebarCollapsed ? "justify-center scale-[0.6] origin-center" : "justify-center"
+            )}>
+              <SkyToggle />
+            </div>
+
+            {/* Logout Button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -135,6 +144,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     {item.name}
                   </NavLink>
                 ))}
+                
+                {/* Mobile Theme Toggle */}
+                <div className="flex justify-center py-3 border-t border-border mt-2">
+                  <SkyToggle />
+                </div>
+
                 <Button
                   variant="ghost"
                   onClick={() => {
