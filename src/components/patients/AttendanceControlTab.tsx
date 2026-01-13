@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +31,8 @@ import {
   Receipt,
   X,
   Filter,
+  Edit3,
+  Save,
 } from "lucide-react";
 import { format, parseISO, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -70,6 +73,10 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     method: "pix",
     invoiceNumber: "",
   });
+  
+  // Estado para evolução diária
+  const [editingEvolutionId, setEditingEvolutionId] = useState<string | null>(null);
+  const [evolutionText, setEvolutionText] = useState("");
 
   // Buscar sessões/agendamentos do paciente
   const { data: sessions = [], isLoading } = useQuery({
@@ -417,6 +424,44 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
       toast.error("Erro ao processar pagamento em lote");
     },
   });
+
+  // Mutation para salvar evolução diária
+  const updateEvolution = useMutation({
+    mutationFn: async ({ appointmentId, notes }: { appointmentId: string; notes: string }) => {
+      const { error } = await supabase
+        .from("appointments")
+        .update({ notes })
+        .eq("id", appointmentId);
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attendance-control", patientId] });
+      toast.success("📝 Evolução salva!");
+      setEditingEvolutionId(null);
+      setEvolutionText("");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Erro ao salvar evolução");
+    },
+  });
+
+  // Handlers para evolução
+  const startEditingEvolution = (session: AttendanceSession) => {
+    setEditingEvolutionId(session.id);
+    setEvolutionText(session.notes || "");
+  };
+
+  const cancelEditingEvolution = () => {
+    setEditingEvolutionId(null);
+    setEvolutionText("");
+  };
+
+  const saveEvolution = (appointmentId: string) => {
+    updateEvolution.mutate({ appointmentId, notes: evolutionText });
+  };
+
 
   const pastSessions = sessions.filter((s) => {
     try {
@@ -1358,6 +1403,68 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                         </Button>
                                       </div>
                                     </div>
+                                  </div>
+                                )}
+
+                                {/* Seção de Evolução Diária */}
+                                {sessionStatus === "present" && (
+                                  <div className="mt-3 pt-3 border-t">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <FileText className="h-4 w-4 text-muted-foreground" />
+                                      <span className="text-sm font-medium">Evolução do Atendimento</span>
+                                      {session.notes && editingEvolutionId !== session.id && (
+                                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                          ✓ Registrada
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    {editingEvolutionId === session.id ? (
+                                      <div className="space-y-2">
+                                        <Textarea
+                                          value={evolutionText}
+                                          onChange={(e) => setEvolutionText(e.target.value)}
+                                          placeholder="Descreva a evolução do paciente neste atendimento..."
+                                          rows={3}
+                                          className="text-sm"
+                                        />
+                                        <div className="flex gap-2">
+                                          <Button 
+                                            size="sm" 
+                                            onClick={() => saveEvolution(session.id)}
+                                            disabled={updateEvolution.isPending}
+                                            className="bg-success hover:bg-success/90"
+                                          >
+                                            <Save className="h-4 w-4 mr-1" />
+                                            {updateEvolution.isPending ? "Salvando..." : "Salvar"}
+                                          </Button>
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            onClick={cancelEditingEvolution}
+                                          >
+                                            Cancelar
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div 
+                                        className="p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors group"
+                                        onClick={() => startEditingEvolution(session)}
+                                      >
+                                        {session.notes ? (
+                                          <div className="flex items-start justify-between gap-2">
+                                            <p className="text-sm text-foreground whitespace-pre-wrap">{session.notes}</p>
+                                            <Edit3 className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                                          </div>
+                                        ) : (
+                                          <p className="text-sm text-muted-foreground italic flex items-center gap-2">
+                                            <Edit3 className="h-4 w-4" />
+                                            Clique para adicionar evolução...
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
