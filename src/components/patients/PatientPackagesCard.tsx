@@ -192,6 +192,7 @@ function AddPackageModal({ open, onOpenChange, patientId, availablePackages }: A
   const queryClient = useQueryClient();
   const [selectedPackage, setSelectedPackage] = useState<string>('');
   const [customPrice, setCustomPrice] = useState<string>('');
+  const [usedSessions, setUsedSessions] = useState<string>('0');
 
   const createPackage = useMutation({
     mutationFn: async () => {
@@ -202,16 +203,19 @@ function AddPackageModal({ open, onOpenChange, patientId, availablePackages }: A
         ? new Date(Date.now() + pkg.validity_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         : null;
 
+      const usedSessionsNum = parseInt(usedSessions) || 0;
+      const isCompleted = usedSessionsNum >= pkg.total_sessions;
+
       const { error } = await supabase
         .from('patient_packages')
         .insert({
           patient_id: patientId,
           package_id: pkg.id,
           total_sessions: pkg.total_sessions,
-          used_sessions: 0,
+          used_sessions: usedSessionsNum,
           purchase_price: customPrice ? parseFloat(customPrice) : pkg.price,
           expiration_date: expirationDate,
-          status: 'active',
+          status: isCompleted ? 'completed' : 'active',
         });
       
       if (error) throw error;
@@ -219,10 +223,13 @@ function AddPackageModal({ open, onOpenChange, patientId, availablePackages }: A
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patient-packages', patientId] });
       queryClient.invalidateQueries({ queryKey: ['patient-credits', patientId] });
+      queryClient.invalidateQueries({ queryKey: ['active-package', patientId] });
+      queryClient.invalidateQueries({ queryKey: ['all-patient-packages', patientId] });
       toast.success('Pacote adicionado com sucesso!');
       onOpenChange(false);
       setSelectedPackage('');
       setCustomPrice('');
+      setUsedSessions('0');
     },
     onError: (error) => {
       toast.error('Erro ao adicionar pacote');
@@ -262,19 +269,41 @@ function AddPackageModal({ open, onOpenChange, patientId, availablePackages }: A
           </div>
 
           {selectedPkg && (
-            <div className="space-y-2">
-              <Label>Valor (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder={selectedPkg.price?.toFixed(2)}
-                value={customPrice}
-                onChange={(e) => setCustomPrice(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Deixe em branco para usar valor padrão: R$ {selectedPkg.price?.toFixed(2)}
-              </p>
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder={selectedPkg.price?.toFixed(2)}
+                  value={customPrice}
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixe em branco para usar valor padrão: R$ {selectedPkg.price?.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Sessões já utilizadas</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max={selectedPkg.total_sessions}
+                  placeholder="0"
+                  value={usedSessions}
+                  onChange={(e) => setUsedSessions(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Informe quantas sessões já foram realizadas (para pacotes retroativos)
+                </p>
+                {parseInt(usedSessions) > 0 && (
+                  <p className="text-xs font-medium text-primary">
+                    Restantes: {selectedPkg.total_sessions - (parseInt(usedSessions) || 0)} sessões
+                  </p>
+                )}
+              </div>
+            </>
           )}
 
           <Button 
