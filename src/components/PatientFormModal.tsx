@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { ClinicalAssessmentsTab } from "@/components/patients/ClinicalAssessmentsTab";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -382,6 +383,12 @@ export function PatientFormModal({
                   <span className="sm:hidden">Clínicos</span>
                 </TabsTrigger>
                 <TabsTrigger value="operational" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">Operacional</TabsTrigger>
+                {patient && (
+                  <TabsTrigger value="assessments" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                    <span className="hidden sm:inline">Avaliações Clínicas</span>
+                    <span className="sm:hidden">Avaliações</span>
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               {/* SEÇÃO 1: DADOS PESSOAIS */}
@@ -1269,6 +1276,13 @@ export function PatientFormModal({
                   />
                 </div>
               </TabsContent>
+
+              {/* SEÇÃO 4: AVALIAÇÕES CLÍNICAS (apenas para pacientes existentes) */}
+              {patient && (
+                <TabsContent value="assessments" className="space-y-4 mt-4">
+                  <ClinicalAssessmentsTab patientId={patient.id} />
+                </TabsContent>
+              )}
             </Tabs>
 
             <div className="flex justify-end gap-2 pt-4 border-t">
