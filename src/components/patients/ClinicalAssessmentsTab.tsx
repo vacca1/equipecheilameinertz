@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Edit2, Trash2, FileText, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Edit2, Trash2, FileText, Star, ChevronDown, ChevronUp, GitCompare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePatientAssessments, ClinicalAssessment, ClinicalAssessmentInsert } from "@/hooks/usePatientAssessments";
 import { ClinicalAssessmentModal } from "./ClinicalAssessmentModal";
+import { ClinicalAssessmentComparison } from "./ClinicalAssessmentComparison";
 
 interface ClinicalAssessmentsTabProps {
   patientId: string;
@@ -31,6 +32,7 @@ export function ClinicalAssessmentsTab({ patientId }: ClinicalAssessmentsTabProp
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null);
   const [expandedAssessments, setExpandedAssessments] = useState<Set<string>>(new Set());
+  const [comparisonOpen, setComparisonOpen] = useState(false);
 
   const toggleExpanded = (id: string) => {
     const newExpanded = new Set(expandedAssessments);
@@ -87,10 +89,22 @@ export function ClinicalAssessmentsTab({ patientId }: ClinicalAssessmentsTabProp
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Histórico de Avaliações Clínicas</h3>
-        <Button onClick={() => handleOpenModal()} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Avaliação
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setComparisonOpen(true)} 
+            size="sm" 
+            variant="outline"
+            disabled={assessments.length < 2}
+            title={assessments.length < 2 ? "Necessário ao menos 2 avaliações para comparar" : "Comparar avaliações"}
+          >
+            <GitCompare className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Comparar</span>
+          </Button>
+          <Button onClick={() => handleOpenModal()} size="sm">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nova Avaliação</span>
+          </Button>
+        </div>
       </div>
 
       {assessments.length === 0 ? (
@@ -225,6 +239,12 @@ export function ClinicalAssessmentsTab({ patientId }: ClinicalAssessmentsTabProp
         assessment={editingAssessment}
         onSave={handleSave}
         isLoading={createAssessment.isPending || updateAssessment.isPending}
+      />
+
+      <ClinicalAssessmentComparison
+        open={comparisonOpen}
+        onOpenChange={setComparisonOpen}
+        assessments={assessments}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
