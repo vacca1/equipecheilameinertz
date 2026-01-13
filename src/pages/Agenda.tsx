@@ -35,6 +35,7 @@ interface Appointment {
   patientName: string;
   time: string;
   status: AppointmentStatus;
+  attendanceStatus?: string; // 'scheduled' | 'present' | 'absent' | 'cancelled'
   therapist: string;
   hasInvoice: boolean;
   notes?: string;
@@ -99,7 +100,18 @@ const isSlotOccupied = (
   return { occupied: false };
 };
 
-const getStatusColor = (status: AppointmentStatus) => {
+const getStatusColor = (status: AppointmentStatus, attendanceStatus?: string) => {
+  // PRIORIDADE: Se presença confirmada, sempre verde forte
+  if (attendanceStatus === "present") {
+    return "bg-emerald-100 text-foreground border-emerald-500 border-2";
+  }
+  
+  // Se faltou, cor de aviso (laranja)
+  if (attendanceStatus === "absent") {
+    return "bg-orange-100 text-foreground border-orange-400";
+  }
+  
+  // Caso contrário, usar status do agendamento
   switch (status) {
     case "confirmed":
       return "bg-status-confirmed text-foreground border-success/20";
@@ -114,7 +126,18 @@ const getStatusColor = (status: AppointmentStatus) => {
   }
 };
 
-const getStatusIcon = (status: AppointmentStatus) => {
+const getStatusIcon = (status: AppointmentStatus, attendanceStatus?: string) => {
+  // PRIORIDADE: Se presença confirmada, ícone de check verde
+  if (attendanceStatus === "present") {
+    return <Check className="w-3 h-3 text-emerald-600" />;
+  }
+  
+  // Se faltou, ícone X laranja
+  if (attendanceStatus === "absent") {
+    return <X className="w-3 h-3 text-orange-500" />;
+  }
+  
+  // Caso contrário, usar status do agendamento
   switch (status) {
     case "confirmed":
       return <Check className="w-3 h-3 text-success" />;
@@ -172,6 +195,7 @@ const Agenda = () => {
       patientName: apt.patient_name,
       time: apt.time,
       status: apt.status as AppointmentStatus,
+      attendanceStatus: apt.attendance_status || undefined,
       therapist: apt.therapist,
       hasInvoice: false,
       notes: apt.notes || undefined,
@@ -316,6 +340,16 @@ const Agenda = () => {
           <Card className="p-3 sm:p-4 shadow-soft">
             <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
               <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-emerald-100 border-2 border-emerald-500" />
+                <Check className="w-2 h-2 sm:w-3 sm:h-3 text-emerald-600 -ml-0.5 sm:-ml-1" />
+                <span>Presente</span>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-orange-100 border border-orange-400" />
+                <X className="w-2 h-2 sm:w-3 sm:h-3 text-orange-500 -ml-0.5 sm:-ml-1" />
+                <span>Faltou</span>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2">
                 <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-status-confirmed border border-success/20" />
                 <Check className="w-2 h-2 sm:w-3 sm:h-3 text-success -ml-0.5 sm:-ml-1" />
                 <span>Confirmado</span>
@@ -450,7 +484,7 @@ const Agenda = () => {
                                     }}
                                     className={cn(
                                       "absolute inset-x-1 top-1 z-10 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2 overflow-hidden",
-                                      appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status),
+                                      appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus),
                                       appointmentsAtTime.length === 1 && appointmentsAtTime[0].status === "cancelled" && "line-through opacity-70",
                                       appointmentsAtTime.length > 1 && "bg-background border-primary/30 flex flex-col"
                                     )}
@@ -464,7 +498,7 @@ const Agenda = () => {
                                           </div>
                                           <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                             <div className="flex items-center gap-1">
-                                              {getStatusIcon(appointmentsAtTime[0].status)}
+                                              {getStatusIcon(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus)}
                                               {appointmentsAtTime[0].notes && (
                                                 <MessageSquare className="w-3 h-3 text-primary" />
                                               )}
@@ -494,7 +528,7 @@ const Agenda = () => {
                                             key={apt.id}
                                             className={cn(
                                               "flex-1 p-1.5 flex flex-col",
-                                              getStatusColor(apt.status),
+                                              getStatusColor(apt.status, apt.attendanceStatus),
                                               apt.status === "cancelled" && "line-through opacity-70",
                                               aptIdx === 0 && "rounded-l-md border-r border-border/50",
                                               aptIdx === 1 && "rounded-r-md"
@@ -505,7 +539,7 @@ const Agenda = () => {
                                                 {apt.patientName}
                                               </div>
                                               <div className="flex items-center gap-0.5 flex-shrink-0">
-                                                {getStatusIcon(apt.status)}
+                                                {getStatusIcon(apt.status, apt.attendanceStatus)}
                                                 {apt.notes && (
                                                   <MessageSquare className="w-2.5 h-2.5 text-primary" />
                                                 )}
@@ -682,7 +716,7 @@ const Agenda = () => {
                             onClick={() => handleCellClick(day, time)}
                             className={cn(
                               "flex-1 rounded-lg text-left transition-all border-2 overflow-hidden",
-                              appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status),
+                              appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus),
                               appointmentsAtTime.length > 1 && "bg-background border-primary/30"
                             )}
                           >
@@ -703,7 +737,7 @@ const Agenda = () => {
                                   </div>
                                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                     <div className="flex items-center gap-1">
-                                      {getStatusIcon(appointmentsAtTime[0].status)}
+                                      {getStatusIcon(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus)}
                                       {appointmentsAtTime[0].notes && (
                                         <MessageSquare className="w-3 h-3 text-primary" />
                                       )}
@@ -726,7 +760,7 @@ const Agenda = () => {
                                       key={apt.id}
                                       className={cn(
                                         "flex-1 p-2 sm:p-3",
-                                        getStatusColor(apt.status),
+                                        getStatusColor(apt.status, apt.attendanceStatus),
                                         apt.status === "cancelled" && "line-through opacity-70",
                                         aptIdx === 0 && "border-r border-border/50"
                                       )}
@@ -744,7 +778,7 @@ const Agenda = () => {
                                           )}
                                         </div>
                                         <div className="flex items-center gap-0.5 flex-shrink-0">
-                                          {getStatusIcon(apt.status)}
+                                          {getStatusIcon(apt.status, apt.attendanceStatus)}
                                           {apt.notes && (
                                             <MessageSquare className="w-3 h-3 text-primary" />
                                           )}
