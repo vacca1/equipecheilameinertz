@@ -188,9 +188,13 @@ export function IncomeModal({ open, onOpenChange, income }: IncomeModalProps) {
     const isImmediatePayment = ['pix', 'cash', 'dinheiro', 'debit', 'cartao_debito'].includes(data.paymentMethod);
     const autoPaymentStatus = isImmediatePayment ? 'received' : data.paymentStatus;
 
+    // Buscar patient_id pelo nome selecionado
+    const selectedPatient = patientsData.find(p => p.name === data.patient);
+
     const incomeData = {
       date: data.date,
       patient_name: data.patient,
+      patient_id: selectedPatient?.id, // Passando patient_id para criar pacote automaticamente
       therapist: data.therapists[0], // Manter primeira para compatibilidade
       value: parseFloat(data.value),
       sessions_covered: data.sessionsCovered,

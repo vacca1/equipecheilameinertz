@@ -64,8 +64,11 @@ export const useCreateIncome = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (income: Omit<Income, "id" | "created_at" | "updated_at"> & { therapists?: Array<{ therapist: string; sessions_count: number; commission_percentage: number }> }) => {
-      const { therapists, ...incomeData } = income;
+    mutationFn: async (income: Omit<Income, "id" | "created_at" | "updated_at"> & { 
+      therapists?: Array<{ therapist: string; sessions_count: number; commission_percentage: number }>;
+      patient_id?: string; // ID do paciente para criar pacote automaticamente
+    }) => {
+      const { therapists, patient_id, ...incomeData } = income;
       
       // Criar o income principal
       const { data, error } = await supabase
@@ -93,10 +96,68 @@ export const useCreateIncome = () => {
         if (therapistError) throw therapistError;
       }
 
+      // NOVO: Se cobre mais de 1 sessão, criar pacote automaticamente
+      if (income.sessions_covered && income.sessions_covered > 1) {
+        let patientId = patient_id;
+        
+        // Se não tiver patient_id, buscar pelo nome
+        if (!patientId && income.patient_name) {
+          const { data: patient } = await supabase
+            .from("patients")
+            .select("id")
+            .eq("name", income.patient_name)
+            .single();
+          
+          patientId = patient?.id;
+        }
+
+        if (patientId) {
+          // Buscar pacote padrão compatível
+          const { data: matchingPackage } = await supabase
+            .from("packages")
+            .select("id")
+            .eq("total_sessions", income.sessions_covered)
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+
+          // Data de expiração: 3 meses a partir de hoje
+          const expirationDate = new Date();
+          expirationDate.setMonth(expirationDate.getMonth() + 3);
+
+          const { error: packageError } = await supabase
+            .from("patient_packages")
+            .insert({
+              patient_id: patientId,
+              package_id: matchingPackage?.id || null,
+              total_sessions: income.sessions_covered,
+              used_sessions: 0,
+              purchase_price: income.value,
+              expiration_date: expirationDate.toISOString().split('T')[0],
+              status: 'active',
+              notes: `Criado automaticamente via Caixa em ${new Date().toLocaleDateString('pt-BR')}`,
+            });
+
+          if (packageError) {
+            console.error("Erro ao criar pacote automaticamente:", packageError);
+            // Não falha a operação, apenas loga o erro
+          }
+        }
+      }
+
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["incomes"] });
+      
+      // Se criou um pacote (mais de 1 sessão), invalidar queries de pacotes
+      if (variables.sessions_covered && variables.sessions_covered > 1) {
+        queryClient.invalidateQueries({ queryKey: ["patient-packages"] });
+        queryClient.invalidateQueries({ queryKey: ["patient-credits"] });
+        queryClient.invalidateQueries({ queryKey: ["active-package"] });
+        queryClient.invalidateQueries({ queryKey: ["all-patient-packages"] });
+      }
+      
       toast.success("Entrada registrada com sucesso!");
     },
     onError: (error: any) => {
