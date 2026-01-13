@@ -335,6 +335,173 @@ export const useUpdateAppointment = () => {
   });
 };
 
+// Hook para criar repetições futuras ao editar um agendamento existente
+export const useCreateFutureRepetitions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      baseAppointment: {
+        patient_id?: string;
+        patient_name: string;
+        date: string;
+        time: string;
+        duration: number;
+        therapist: string;
+        room?: string;
+        status: string;
+        is_first_session: boolean;
+        notes?: string;
+        repeat_until: string;
+      };
+    }) => {
+      const { baseAppointment } = params;
+      
+      console.log("[useCreateFutureRepetitions] Iniciando criação de repetições futuras");
+      console.log("[useCreateFutureRepetitions] Data base:", baseAppointment.date);
+      console.log("[useCreateFutureRepetitions] Até:", baseAppointment.repeat_until);
+
+      const appointmentsToCreate: any[] = [];
+      // Começar da PRÓXIMA semana (a atual já existe)
+      let currentDate = addWeeks(parseISO(baseAppointment.date), 1);
+      const endDate = parseISO(baseAppointment.repeat_until);
+
+      while (currentDate <= endDate) {
+        const dateStr = format(currentDate, "yyyy-MM-dd");
+        console.log("[useCreateFutureRepetitions] Adicionando data:", dateStr);
+        
+        appointmentsToCreate.push({
+          patient_id: baseAppointment.patient_id,
+          patient_name: baseAppointment.patient_name,
+          date: dateStr,
+          time: baseAppointment.time,
+          duration: baseAppointment.duration,
+          therapist: baseAppointment.therapist,
+          room: baseAppointment.room,
+          status: baseAppointment.status || "pending",
+          is_first_session: false, // Só a primeira é primeira sessão
+          repeat_weekly: false,
+          notes: baseAppointment.notes,
+        });
+        
+        currentDate = addWeeks(currentDate, 1);
+      }
+
+      console.log("[useCreateFutureRepetitions] Total a criar:", appointmentsToCreate.length);
+
+      if (appointmentsToCreate.length === 0) {
+        return { data: [], skippedCount: 0, skippedDates: [], totalRequested: 0 };
+      }
+
+      // Buscar agendamentos existentes para evitar duplicatas/conflitos
+      const { data: existingAppointments, error: fetchError } = await supabase
+        .from("appointments")
+        .select("*")
+        .eq("therapist", baseAppointment.therapist)
+        .gte("date", baseAppointment.date)
+        .lte("date", baseAppointment.repeat_until)
+        .neq("status", "cancelled");
+
+      if (fetchError) {
+        console.error("[useCreateFutureRepetitions] Erro ao buscar existentes:", fetchError);
+      }
+
+      // Filtrar agendamentos válidos (sem conflito >= 2 pacientes e sem duplicatas)
+      const validAppointments: any[] = [];
+      const skippedDates: string[] = [];
+
+      for (const apt of appointmentsToCreate) {
+        // Verificar duplicata exata (mesmo paciente, data, hora, terapeuta)
+        const isDuplicate = (existingAppointments || []).some(
+          (existing) =>
+            existing.date === apt.date &&
+            existing.time === apt.time &&
+            existing.patient_name === apt.patient_name
+        );
+
+        if (isDuplicate) {
+          skippedDates.push(format(parseISO(apt.date), "dd/MM"));
+          console.log("[useCreateFutureRepetitions] Pulando (duplicata):", apt.date);
+          continue;
+        }
+
+        // Verificar conflitos de horário
+        const conflictsForDate = (existingAppointments || []).filter(
+          (existing) =>
+            existing.date === apt.date &&
+            hasTimeConflict(apt.time, apt.duration, existing.time, existing.duration || 60)
+        );
+
+        if (conflictsForDate.length >= 2) {
+          skippedDates.push(format(parseISO(apt.date), "dd/MM"));
+          console.log("[useCreateFutureRepetitions] Pulando (lotado):", apt.date);
+        } else {
+          validAppointments.push(apt);
+        }
+      }
+
+      console.log("[useCreateFutureRepetitions] Válidos:", validAppointments.length);
+      console.log("[useCreateFutureRepetitions] Pulados:", skippedDates);
+
+      if (validAppointments.length === 0) {
+        return { 
+          data: [], 
+          skippedCount: skippedDates.length, 
+          skippedDates, 
+          totalRequested: appointmentsToCreate.length 
+        };
+      }
+
+      // Inserir os agendamentos válidos
+      const { data, error } = await supabase
+        .from("appointments")
+        .insert(validAppointments)
+        .select();
+
+      if (error) {
+        console.error("[useCreateFutureRepetitions] Erro ao inserir:", error);
+        throw error;
+      }
+
+      console.log("[useCreateFutureRepetitions] Inseridos:", data?.length || 0);
+
+      return { 
+        data, 
+        skippedCount: skippedDates.length, 
+        skippedDates,
+        totalRequested: appointmentsToCreate.length 
+      };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      
+      const patientId = result?.data?.[0]?.patient_id;
+      if (patientId) {
+        queryClient.invalidateQueries({ queryKey: ["patient-appointments", patientId] });
+        queryClient.invalidateQueries({ queryKey: ["patient-session-stats", patientId] });
+      }
+      
+      const created = result.data?.length || 0;
+      const skipped = result.skippedCount || 0;
+      
+      if (created === 0 && skipped > 0) {
+        toast.warning(`Nenhuma repetição criada. ${skipped} datas já existem ou têm conflito.`);
+      } else if (skipped > 0) {
+        toast.warning(
+          `${created} repetições criadas! ${skipped} puladas: ${result.skippedDates?.join(", ")}`,
+          { duration: 8000 }
+        );
+      } else if (created > 0) {
+        toast.success(`${created} repetições futuras criadas com sucesso!`);
+      }
+    },
+    onError: (error: any) => {
+      console.error("[useCreateFutureRepetitions] onError:", error);
+      toast.error(error.message || "Erro ao criar repetições");
+    },
+  });
+};
+
 export const useDeleteAppointment = () => {
   const queryClient = useQueryClient();
 

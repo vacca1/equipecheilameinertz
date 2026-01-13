@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { therapists } from "@/data/therapists";
 import { rooms } from "@/data/rooms";
-import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, useAppointments, validateWeeklyRepetition } from "@/hooks/useAppointments";
+import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, useAppointments, validateWeeklyRepetition, useCreateFutureRepetitions } from "@/hooks/useAppointments";
 import { usePatients, type Patient } from "@/hooks/usePatients";
 import { PatientQuickView } from "@/components/PatientQuickView";
 import { PatientFormModal } from "@/components/PatientFormModal";
@@ -61,6 +61,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const createAppointment = useCreateAppointment();
   const updateAppointment = useUpdateAppointment();
   const deleteAppointment = useDeleteAppointment();
+  const createFutureRepetitions = useCreateFutureRepetitions();
   const { data: patientsData = [] } = usePatients();
   const { data: allAppointments = [] } = useAppointments();
 
@@ -255,7 +256,18 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
     };
 
     if (appointment?.id) {
+      // Atualizar o agendamento existente
       updateAppointment.mutate({ id: appointment.id, ...appointmentData });
+      
+      // Se repetição semanal está ativa, criar agendamentos futuros
+      if (repeatWeekly && repeatUntil) {
+        createFutureRepetitions.mutate({
+          baseAppointment: {
+            ...appointmentData,
+            repeat_until: format(repeatUntil, "yyyy-MM-dd"),
+          },
+        });
+      }
     } else {
       createAppointment.mutate(appointmentData);
     }
