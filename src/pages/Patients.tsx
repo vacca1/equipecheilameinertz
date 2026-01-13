@@ -395,6 +395,7 @@ export default function Patients() {
                   <AttendanceControlTab 
                     patientId={selectedPatient.id} 
                     patientName={selectedPatient.name}
+                    healthPlan={selectedPatient.health_plan}
                   />
                 </TabsContent>
               </Tabs>
