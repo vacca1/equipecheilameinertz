@@ -452,6 +452,7 @@ export type Database = {
           emergency_contact: string | null
           flexibility_notes: string | null
           health_plan: string | null
+          health_plan_notes: string | null
           id: string
           invoice_delivery: string | null
           main_therapist: string
@@ -495,6 +496,7 @@ export type Database = {
           emergency_contact?: string | null
           flexibility_notes?: string | null
           health_plan?: string | null
+          health_plan_notes?: string | null
           id?: string
           invoice_delivery?: string | null
           main_therapist: string
@@ -538,6 +540,7 @@ export type Database = {
           emergency_contact?: string | null
           flexibility_notes?: string | null
           health_plan?: string | null
+          health_plan_notes?: string | null
           id?: string
           invoice_delivery?: string | null
           main_therapist?: string

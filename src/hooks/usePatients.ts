@@ -21,6 +21,7 @@ export interface Patient {
   main_therapist: string;
   substitute_therapist?: string;
   health_plan?: string;
+  health_plan_notes?: string;
   discount?: string;
   discount_percentage?: number;
   plan_number?: string;
