@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   CheckCircle,
   XCircle,
@@ -34,10 +41,14 @@ import {
   Edit3,
   Save,
   Link,
+  Plus,
+  TrendingUp,
 } from "lucide-react";
 import { format, parseISO, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { PatientCreditsCard } from "./PatientCreditsCard";
+import { PatientPackagesCard } from "./PatientPackagesCard";
 
 interface AttendanceControlTabProps {
   patientId: string;
@@ -58,12 +69,262 @@ interface AttendanceSession {
   notes: string | null;
 }
 
+// Modal de Registro de Pagamento (estilo Caixa)
+interface RegisterPaymentModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  patientId: string;
+  patientName: string;
+  defaultTherapist?: string;
+}
+
+function RegisterPaymentModal({ 
+  open, 
+  onOpenChange, 
+  patientId, 
+  patientName,
+  defaultTherapist = ""
+}: RegisterPaymentModalProps) {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    value: "",
+    sessionsCovered: "1",
+    paymentMethod: "pix",
+    therapist: defaultTherapist,
+    invoiceDelivered: false,
+    observations: "",
+  });
+
+  // Buscar pacotes disponíveis para criar automaticamente
+  const { data: availablePackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('total_sessions');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const createPayment = useMutation({
+    mutationFn: async () => {
+      const sessionsCovered = parseInt(formData.sessionsCovered) || 1;
+      const value = parseFloat(formData.value);
+
+      if (!value || value <= 0) {
+        throw new Error("Informe um valor válido");
+      }
+
+      // 1. Criar registro de entrada (income)
+      const { error: incomeError } = await supabase.from("incomes").insert({
+        patient_name: patientName,
+        therapist: formData.therapist || "N/A",
+        value: value,
+        date: formData.date,
+        payment_method: formData.paymentMethod,
+        payment_status: "received",
+        invoice_delivered: formData.invoiceDelivered,
+        sessions_covered: sessionsCovered,
+        observations: formData.observations || `Pagamento de ${sessionsCovered} sessão(ões)`,
+      });
+
+      if (incomeError) throw incomeError;
+
+      // 2. Se cobre mais de 1 sessão, criar pacote automaticamente
+      if (sessionsCovered > 1) {
+        // Tenta encontrar um pacote padrão compatível
+        const matchingPackage = availablePackages.find(p => p.total_sessions === sessionsCovered);
+        
+        const expirationDate = new Date();
+        expirationDate.setMonth(expirationDate.getMonth() + 3); // 3 meses de validade
+
+        const { error: packageError } = await supabase
+          .from("patient_packages")
+          .insert({
+            patient_id: patientId,
+            package_id: matchingPackage?.id || null,
+            total_sessions: sessionsCovered,
+            used_sessions: 0,
+            purchase_price: value,
+            expiration_date: expirationDate.toISOString().split('T')[0],
+            status: 'active',
+            notes: `Criado automaticamente via pagamento em ${format(new Date(), "dd/MM/yyyy")}`,
+          });
+
+        if (packageError) throw packageError;
+      }
+
+      return true;
+    },
+    onSuccess: () => {
+      // Invalidar todas as queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ["patient-incomes", patientName] });
+      queryClient.invalidateQueries({ queryKey: ["patient-packages", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["patient-credits", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["active-package", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["all-patient-packages", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["incomes"] });
+      
+      toast.success("💰 Pagamento registrado com sucesso!");
+      onOpenChange(false);
+      
+      // Reset form
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        value: "",
+        sessionsCovered: "1",
+        paymentMethod: "pix",
+        therapist: defaultTherapist,
+        invoiceDelivered: false,
+        observations: "",
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao registrar pagamento");
+      console.error(error);
+    },
+  });
+
+  const sessionsCovered = parseInt(formData.sessionsCovered) || 1;
+  const valuePerSession = formData.value ? (parseFloat(formData.value) / sessionsCovered).toFixed(2) : "0.00";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-success" />
+            Registrar Pagamento - {patientName}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {/* Data */}
+          <div className="space-y-2">
+            <Label>Data do Pagamento</Label>
+            <Input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            />
+          </div>
+
+          {/* Valor Total */}
+          <div className="space-y-2">
+            <Label>Valor Total (R$) *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+            />
+          </div>
+
+          {/* Quantidade de Sessões */}
+          <div className="space-y-2">
+            <Label>Quantidade de Sessões</Label>
+            <Input
+              type="number"
+              min="1"
+              placeholder="1"
+              value={formData.sessionsCovered}
+              onChange={(e) => setFormData({ ...formData, sessionsCovered: e.target.value })}
+            />
+            {sessionsCovered > 1 && (
+              <p className="text-xs text-muted-foreground">
+                💡 Valor por sessão: R$ {valuePerSession} | Um pacote de {sessionsCovered} sessões será criado automaticamente
+              </p>
+            )}
+          </div>
+
+          {/* Forma de Pagamento */}
+          <div className="space-y-2">
+            <Label>Forma de Pagamento</Label>
+            <Select 
+              value={formData.paymentMethod} 
+              onValueChange={(v) => setFormData({ ...formData, paymentMethod: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix">PIX</SelectItem>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                <SelectItem value="transferencia">Transferência</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fisioterapeuta */}
+          <div className="space-y-2">
+            <Label>Fisioterapeuta Responsável</Label>
+            <Input
+              placeholder="Nome do fisioterapeuta"
+              value={formData.therapist}
+              onChange={(e) => setFormData({ ...formData, therapist: e.target.value })}
+            />
+          </div>
+
+          {/* Nota Fiscal */}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="invoice-delivered"
+              checked={formData.invoiceDelivered}
+              onCheckedChange={(checked) => setFormData({ ...formData, invoiceDelivered: !!checked })}
+            />
+            <Label htmlFor="invoice-delivered" className="cursor-pointer">
+              Nota Fiscal Entregue
+            </Label>
+          </div>
+
+          {/* Observações */}
+          <div className="space-y-2">
+            <Label>Observações (opcional)</Label>
+            <Textarea
+              placeholder="Observações sobre o pagamento..."
+              value={formData.observations}
+              onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+              rows={2}
+            />
+          </div>
+
+          {/* Botão Confirmar */}
+          <Button 
+            className="w-full bg-success hover:bg-success/90" 
+            onClick={() => createPayment.mutate()}
+            disabled={!formData.value || createPayment.isPending}
+          >
+            {createPayment.isPending ? (
+              "Registrando..."
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Confirmar Pagamento
+                {formData.value && ` - R$ ${parseFloat(formData.value).toFixed(2)}`}
+              </>
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function AttendanceControlTab({ patientId, patientName }: AttendanceControlTabProps) {
   const queryClient = useQueryClient();
   const [payingSessionId, setPayingSessionId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [batchPaymentOpen, setBatchPaymentOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [batchPaymentForm, setBatchPaymentForm] = useState({
     amount: "",
     method: "pix",
@@ -305,7 +566,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     },
   });
 
-  // Registrar pagamento
+  // Registrar pagamento avulso
   const registerPayment = useMutation({
     mutationFn: async ({
       appointmentId,
@@ -527,6 +788,9 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
   const totalPaid = incomes
     .filter((i) => i.payment_status === "received")
     .reduce((sum, i) => sum + Number(i.value || 0), 0);
+  const totalPending = incomes
+    .filter((i) => i.payment_status === "pending")
+    .reduce((sum, i) => sum + Number(i.value || 0), 0);
 
   // Sessões presentes sem pagamento (aproximado)
   const unpaidPresentSessions = presentCount - paidSessionsCount;
@@ -641,7 +905,11 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     credito: "Crédito",
     transferencia: "Transferência",
     pacote: "Pacote",
+    cartao_debito: "Débito",
+    cartao_credito: "Crédito",
   };
+
+  const defaultTherapist = sessions[0]?.therapist || "";
 
   if (isLoading) {
     return (
@@ -651,6 +919,131 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
 
   return (
     <div className="space-y-6">
+      {/* SEÇÃO FINANCEIRA NO TOPO */}
+      
+      {/* Cards de Créditos e Pacotes lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <PatientCreditsCard patientId={patientId} />
+        <PatientPackagesCard patientId={patientId} />
+      </div>
+
+      {/* Resumo Financeiro + Botão Registrar Pagamento */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-success/10 rounded-full">
+                <DollarSign className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Recebido</p>
+                <p className="text-2xl font-bold text-success">
+                  R$ {totalPaid.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-warning/10 rounded-full">
+                <Clock className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pendente</p>
+                <p className="text-2xl font-bold text-warning">
+                  R$ {totalPending.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-primary/10 rounded-full">
+                <TrendingUp className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Sessões Pagas</p>
+                <p className="text-2xl font-bold text-primary">
+                  {incomes.reduce((sum, i) => sum + (i.sessions_covered || 1), 0)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Botão Registrar Pagamento (Estilo Caixa) */}
+        <Card className="border-2 border-dashed border-success/50 bg-success/5 hover:bg-success/10 transition-colors cursor-pointer"
+              onClick={() => setShowPaymentModal(true)}>
+          <CardContent className="p-4 flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="p-3 bg-success/20 rounded-full mx-auto mb-2 w-fit">
+                <Plus className="h-6 w-6 text-success" />
+              </div>
+              <p className="font-semibold text-success">Registrar Pagamento</p>
+              <p className="text-xs text-muted-foreground">Adicionar entrada</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Histórico de Pagamentos */}
+      {incomes.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Histórico de Pagamentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {incomes.map((income) => {
+                const isReceived = income.payment_status === "received";
+                return (
+                  <div key={income.id} className="flex items-center gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className={`p-2 rounded-full ${isReceived ? "bg-success/10" : "bg-warning/10"}`}>
+                      <DollarSign className={`h-4 w-4 ${isReceived ? "text-success" : "text-warning"}`} />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-medium text-sm truncate">
+                          {income.sessions_covered || 1} sessão(ões)
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {paymentMethodLabels[income.payment_method || ""] || income.payment_method || "N/A"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>{format(parseISO(income.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        <span>{income.invoice_delivered ? "✓ NF" : ""}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <p className={`font-bold ${isReceived ? "text-success" : "text-warning"}`}>
+                        R$ {Number(income.value || 0).toFixed(2)}
+                      </p>
+                      <Badge className={`text-xs ${isReceived ? "bg-success" : "bg-warning"}`}>
+                        {isReceived ? "Recebido" : "Pendente"}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* SEÇÃO DE PRESENÇA */}
+      
       {/* Pacote Ativo */}
       {activePackage && (
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
@@ -714,7 +1107,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
         </Card>
       )}
 
-      {/* Estatísticas */}
+      {/* Estatísticas de Presença */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -1567,6 +1960,15 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Registro de Pagamento (Estilo Caixa) */}
+      <RegisterPaymentModal
+        open={showPaymentModal}
+        onOpenChange={setShowPaymentModal}
+        patientId={patientId}
+        patientName={patientName}
+        defaultTherapist={defaultTherapist}
+      />
     </div>
   );
 }
