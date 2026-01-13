@@ -44,6 +44,7 @@ import { useSessions } from "@/hooks/useSessions";
 import { therapistsWithAll } from "@/data/therapists";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export default function Patients() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -136,290 +137,287 @@ export default function Patients() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Icon */}
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl shadow-soft">
-          <User className="w-8 h-8 text-success" />
-        </div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Gestão de Pacientes
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Cadastro completo e controle de presença
-          </p>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="page-title">Gestão de Pacientes</h1>
+        <p className="page-subtitle">
+          Cadastro completo e controle de presença
+        </p>
       </div>
 
-      <div className="flex flex-col md:flex-row h-full gap-4">
-        {/* Sidebar - Lista de Pacientes */}
-        <div className="w-full md:w-80 flex-shrink-0">
-        <Card className="h-full">
-          <CardHeader>
-            <div className="flex items-center justify-between mb-4">
-              <CardTitle className="text-xl">Pacientes</CardTitle>
-              <Button 
-                onClick={() => {
-                  setEditingPatient(null);
-                  setPatientModalOpen(true);
-                }} 
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Novo
-              </Button>
-            </div>
-
-            {/* Barra de Busca */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, CPF ou telefone"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            {/* Filtros e Ordenação */}
-            <div className="flex gap-2 mt-3">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full">
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="alphabetical">Alfabética</SelectItem>
-                  <SelectItem value="recent">Mais Recentes</SelectItem>
-                  <SelectItem value="lastVisit">Último Atendimento</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <Select value={filterTherapist} onValueChange={setFilterTherapist}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Fisio" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="Ana Falcão">Ana</SelectItem>
-                  <SelectItem value="Cheila">Cheila</SelectItem>
-                  <SelectItem value="Grazii">Grazii</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterInsurance} onValueChange={setFilterInsurance}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Conv" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="SUS">SUS</SelectItem>
-                  <SelectItem value="Unimed">Unimed</SelectItem>
-                  <SelectItem value="Particular">Particular</SelectItem>
-                  <SelectItem value="Amil">Amil</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="inactive">Inativo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <div className="space-y-1 max-h-[calc(100vh-320px)] overflow-y-auto">
-              {filteredPatients.map((patient) => (
-                <button
-                  key={patient.id}
-                  onClick={() => setSelectedPatient(patient)}
-                  className={`w-full text-left p-4 hover:bg-accent transition-colors border-l-4 ${
-                    selectedPatient?.id === patient.id
-                      ? "bg-accent border-primary"
-                      : "border-transparent"
-                  }`}
+      <div className="flex flex-col lg:flex-row h-full gap-6">
+        {/* Sidebar - Patient List */}
+        <div className="w-full lg:w-80 flex-shrink-0">
+          <Card className="h-full">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between mb-4">
+                <CardTitle className="text-lg">Pacientes</CardTitle>
+                <Button 
+                  onClick={() => {
+                    setEditingPatient(null);
+                    setPatientModalOpen(true);
+                  }} 
+                  size="sm"
                 >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                        patient.status === "active" ? "bg-primary" : "bg-muted-foreground"
-                      }`}
-                    >
-                      {getInitials(patient.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{patient.name}</p>
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            patient.status === "active" ? "bg-success" : "bg-muted-foreground"
-                          }`}
-                        />
+                  <Plus className="h-4 w-4 mr-1" />
+                  Novo
+                </Button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, CPF ou telefone"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 bg-muted/30"
+                />
+              </div>
+
+              {/* Filters */}
+              <div className="flex gap-2 mt-3">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full bg-muted/30">
+                    <ArrowUpDown className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="alphabetical">Alfabética</SelectItem>
+                    <SelectItem value="recent">Mais Recentes</SelectItem>
+                    <SelectItem value="lastVisit">Último Atendimento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                <Select value={filterTherapist} onValueChange={setFilterTherapist}>
+                  <SelectTrigger className="bg-muted/30">
+                    <SelectValue placeholder="Fisio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="Ana Falcão">Ana</SelectItem>
+                    <SelectItem value="Cheila">Cheila</SelectItem>
+                    <SelectItem value="Grazii">Grazii</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterInsurance} onValueChange={setFilterInsurance}>
+                  <SelectTrigger className="bg-muted/30">
+                    <SelectValue placeholder="Conv" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="SUS">SUS</SelectItem>
+                    <SelectItem value="Unimed">Unimed</SelectItem>
+                    <SelectItem value="Particular">Particular</SelectItem>
+                    <SelectItem value="Amil">Amil</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="bg-muted/30">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              <div className="space-y-0 max-h-[calc(100vh-400px)] overflow-y-auto scrollbar-thin">
+                {filteredPatients.map((patient) => (
+                  <button
+                    key={patient.id}
+                    onClick={() => setSelectedPatient(patient)}
+                    className={cn(
+                      "w-full text-left p-4 transition-colors border-l-4",
+                      selectedPatient?.id === patient.id
+                        ? "bg-primary/5 border-primary"
+                        : "border-transparent hover:bg-muted/50"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm",
+                          patient.status === "active" ? "bg-primary" : "bg-muted-foreground"
+                        )}
+                      >
+                        {getInitials(patient.name)}
                       </div>
-                      <div className="flex gap-1 mt-1">
-                        <Badge variant="secondary" className="text-xs">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{patient.name}</p>
+                          <div
+                            className={cn(
+                              "w-2 h-2 rounded-full flex-shrink-0",
+                              patient.status === "active" ? "bg-success" : "bg-muted-foreground"
+                            )}
+                          />
+                        </div>
+                        <Badge variant="muted" className="text-xs mt-1">
                           {patient.health_plan || "Não informado"}
                         </Badge>
                       </div>
                     </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-        {/* Área Principal - Ficha do Paciente */}
-      <div className="flex-1 overflow-auto">
-        {selectedPatient ? (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl">{selectedPatient.name}</CardTitle>
-                  <p className="text-muted-foreground mt-1">
-                    {selectedPatient.health_plan || "Não informado"} • {selectedPatient.main_therapist}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setEditingPatient(selectedPatient);
-                      setPatientModalOpen(true);
-                    }}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => setDeleteDialogOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir
-                  </Button>
-                </div>
+                  </button>
+                ))}
               </div>
-            </CardHeader>
-
-            <CardContent>
-              <Tabs defaultValue="personal" className="w-full">
-                <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide">
-                  <TabsTrigger value="personal" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
-                    <span className="hidden sm:inline">Dados Pessoais</span>
-                    <span className="sm:hidden">Pessoais</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="clinical" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
-                    <span className="hidden sm:inline">Clínicas</span>
-                    <span className="sm:hidden">Clínicos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="operational" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">Operacional</TabsTrigger>
-                  <TabsTrigger value="financial" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
-                    <span className="hidden sm:inline">Financeiro</span>
-                    <span className="sm:hidden">$</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="sessions" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 py-2">
-                    <span className="hidden sm:inline">Controle de Presença</span>
-                    <span className="sm:hidden">Presença</span>
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="personal" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Nome Completo</label>
-                      <p className="mt-1">{selectedPatient.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Data de Nascimento</label>
-                      <p className="mt-1">{selectedPatient.birth_date ? format(new Date(selectedPatient.birth_date), 'dd/MM/yyyy') : "Não informado"}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">CPF</label>
-                      <p className="mt-1">{selectedPatient.cpf || "Não informado"}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Telefone</label>
-                      <p className="mt-1">{selectedPatient.phone || "Não informado"}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">E-mail</label>
-                      <p className="mt-1">{selectedPatient.email || "Não informado"}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Convênio</label>
-                      <p className="mt-1">{selectedPatient.health_plan || "Não informado"}</p>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="clinical" className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Informações clínicas completas serão exibidas aqui após preenchimento do formulário.
-                  </p>
-                </TabsContent>
-
-                <TabsContent value="operational" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Fisioterapeuta Padrão</label>
-                      <p className="mt-1">{selectedPatient.main_therapist}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Porcentagem de Repasse</label>
-                      <p className="mt-1">{selectedPatient.commission_percentage || 0}%</p>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="financial" className="space-y-4">
-                  <PatientCreditsCard patientId={selectedPatient.id} />
-                  <PatientPackagesCard patientId={selectedPatient.id} />
-                  <PatientFinancialTab patientName={selectedPatient.name} />
-                </TabsContent>
-
-
-                <TabsContent value="sessions" className="space-y-4">
-                  <AttendanceControlTab 
-                    patientId={selectedPatient.id} 
-                    patientName={selectedPatient.name}
-                    healthPlan={selectedPatient.health_plan}
-                  />
-                </TabsContent>
-              </Tabs>
             </CardContent>
           </Card>
-        ) : (
-          <Card className="h-full flex items-center justify-center">
-            <CardContent className="text-center">
-              <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum paciente selecionado</h3>
-              <p className="text-muted-foreground mb-4">
-                Selecione um paciente da lista ou crie um novo
-              </p>
-              <Button onClick={() => {
-                setEditingPatient(null);
-                setPatientModalOpen(true);
-              }}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Paciente
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+        </div>
+
+        {/* Main Area - Patient File */}
+        <div className="flex-1 overflow-auto">
+          {selectedPatient ? (
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{selectedPatient.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {selectedPatient.health_plan || "Não informado"} • {selectedPatient.main_therapist}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setEditingPatient(selectedPatient);
+                        setPatientModalOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                <Tabs defaultValue="personal" className="w-full">
+                  <TabsList className="w-full sm:w-auto overflow-x-auto scrollbar-hide">
+                    <TabsTrigger value="personal" className="text-xs sm:text-sm">
+                      <span className="hidden sm:inline">Dados Pessoais</span>
+                      <span className="sm:hidden">Pessoais</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="clinical" className="text-xs sm:text-sm">
+                      Clínicos
+                    </TabsTrigger>
+                    <TabsTrigger value="operational" className="text-xs sm:text-sm">
+                      Operacional
+                    </TabsTrigger>
+                    <TabsTrigger value="financial" className="text-xs sm:text-sm">
+                      <span className="hidden sm:inline">Financeiro</span>
+                      <span className="sm:hidden">$</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="sessions" className="text-xs sm:text-sm">
+                      <span className="hidden sm:inline">Controle de Presença</span>
+                      <span className="sm:hidden">Presença</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="personal" className="space-y-6 mt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1">
+                        <label className="metric-label">Nome Completo</label>
+                        <p className="text-foreground">{selectedPatient.name}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="metric-label">Data de Nascimento</label>
+                        <p className="text-foreground">{selectedPatient.birth_date ? format(new Date(selectedPatient.birth_date), 'dd/MM/yyyy') : "Não informado"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="metric-label">CPF</label>
+                        <p className="text-foreground">{selectedPatient.cpf || "Não informado"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="metric-label">Telefone</label>
+                        <p className="text-foreground">{selectedPatient.phone || "Não informado"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="metric-label">E-mail</label>
+                        <p className="text-foreground">{selectedPatient.email || "Não informado"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="metric-label">Convênio</label>
+                        <p className="text-foreground">{selectedPatient.health_plan || "Não informado"}</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="clinical" className="mt-6">
+                    <p className="text-muted-foreground">
+                      Informações clínicas completas serão exibidas aqui após preenchimento do formulário.
+                    </p>
+                  </TabsContent>
+
+                  <TabsContent value="operational" className="space-y-6 mt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1">
+                        <label className="metric-label">Fisioterapeuta Padrão</label>
+                        <p className="text-foreground">{selectedPatient.main_therapist}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="metric-label">Porcentagem de Repasse</label>
+                        <p className="text-foreground">{selectedPatient.commission_percentage || 0}%</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="financial" className="space-y-6 mt-6">
+                    <PatientCreditsCard patientId={selectedPatient.id} />
+                    <PatientPackagesCard patientId={selectedPatient.id} />
+                    <PatientFinancialTab patientName={selectedPatient.name} />
+                  </TabsContent>
+
+                  <TabsContent value="sessions" className="mt-6">
+                    <AttendanceControlTab 
+                      patientId={selectedPatient.id} 
+                      patientName={selectedPatient.name}
+                      healthPlan={selectedPatient.health_plan}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="h-full flex items-center justify-center min-h-[400px]">
+              <CardContent className="text-center py-16">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <User className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Nenhum paciente selecionado</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm">
+                  Selecione um paciente da lista ou crie um novo para visualizar os detalhes
+                </p>
+                <Button onClick={() => {
+                  setEditingPatient(null);
+                  setPatientModalOpen(true);
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Paciente
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Modals */}

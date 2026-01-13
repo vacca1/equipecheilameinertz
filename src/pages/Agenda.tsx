@@ -235,31 +235,23 @@ const Agenda = () => {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Header with Icon */}
+        {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl shadow-soft">
-              <CalendarIcon className="w-8 h-8 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                Agenda Semanal
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Visualização e gerenciamento de consultas por fisioterapeuta
-              </p>
-            </div>
+          <div>
+            <h1 className="page-title">Agenda Semanal</h1>
+            <p className="page-subtitle">
+              Visualização e gerenciamento de consultas por fisioterapeuta
+            </p>
           </div>
           <div className="flex gap-2">
             <Button 
               variant="outline"
-              className="shadow-soft" 
               onClick={() => setShowCopyDialog(true)}
             >
               <Copy className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Copiar Semana</span>
             </Button>
-            <Button className="shadow-soft" onClick={() => {
+            <Button onClick={() => {
               setSelectedAppointment(null);
               setSelectedDate(undefined);
               setSelectedTime(undefined);
@@ -274,25 +266,26 @@ const Agenda = () => {
         <div className="flex flex-col gap-4">
 
           {/* Week Navigator */}
-          <Card className="p-3 sm:p-4 shadow-soft">
-            <div className="flex items-center gap-2 sm:gap-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}
-                className="shadow-soft flex-shrink-0"
+                className="flex-shrink-0"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="shadow-soft flex-1 min-w-0">
-                    <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 text-primary flex-shrink-0" />
-                    <span className="font-semibold text-xs sm:text-base truncate">
+                  <Button variant="outline" className="flex-1 min-w-0">
+                    <CalendarIcon className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+                    <span className="font-medium text-sm truncate">
                       <span className="hidden sm:inline">Semana de </span>
-                      {format(weekDays[0], "dd/MM", { locale: ptBR })} <span className="hidden sm:inline">a</span>
-                      <span className="sm:hidden">-</span> {format(weekDays[5], "dd/MM/yyyy", { locale: ptBR })}
+                      {format(weekDays[0], "dd/MM", { locale: ptBR })}
+                      <span className="mx-1">-</span>
+                      {format(weekDays[5], "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -312,7 +305,7 @@ const Agenda = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}
-                className="shadow-soft flex-shrink-0"
+                className="flex-shrink-0"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -320,16 +313,14 @@ const Agenda = () => {
           </Card>
 
           {/* Therapist Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="inline-flex h-10 items-center gap-1 rounded-xl bg-muted/50 p-1 overflow-x-auto scrollbar-hide">
             {therapists.map((therapist) => (
               <Button
                 key={therapist}
-                variant={selectedTherapist === therapist ? "default" : "outline"}
+                variant={selectedTherapist === therapist ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setSelectedTherapist(therapist)}
-                className={cn(
-                  "whitespace-nowrap shadow-soft min-w-fit text-xs sm:text-sm px-3 sm:px-4",
-                  selectedTherapist === therapist && "shadow-hover"
-                )}
+                className="whitespace-nowrap rounded-lg min-w-fit text-sm px-4"
               >
                 {therapist}
               </Button>
@@ -337,49 +328,39 @@ const Agenda = () => {
           </div>
 
           {/* Legend */}
-          <Card className="p-3 sm:p-4 shadow-soft">
-            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
-              <div className="flex items-center gap-1 sm:gap-2">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-emerald-100 border-2 border-emerald-500" />
-                <Check className="w-2 h-2 sm:w-3 sm:h-3 text-emerald-600 -ml-0.5 sm:-ml-1" />
-                <span>Presente</span>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-orange-100 border border-orange-400" />
-                <X className="w-2 h-2 sm:w-3 sm:h-3 text-orange-500 -ml-0.5 sm:-ml-1" />
-                <span>Faltou</span>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-status-confirmed border border-success/20" />
-                <Check className="w-2 h-2 sm:w-3 sm:h-3 text-success -ml-0.5 sm:-ml-1" />
-                <span>Confirmado</span>
+          <Card className="p-4">
+            <div className="flex flex-wrap gap-3 sm:gap-5 text-xs sm:text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-md bg-emerald-100 border-2 border-emerald-500" />
+                <span className="text-muted-foreground">Presente</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-status-pending border border-pink-300" />
-                <Clock className="w-3 h-3 text-warning -ml-1" />
-                <span>A confirmar</span>
+                <div className="w-4 h-4 rounded-md bg-orange-100 border border-orange-400" />
+                <span className="text-muted-foreground">Faltou</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-status-blocked border border-destructive" />
-                <Lock className="w-3 h-3 text-destructive-foreground -ml-1" />
-                <span>Bloqueado</span>
+                <div className="w-4 h-4 rounded-md bg-status-confirmed border border-success/20" />
+                <span className="text-muted-foreground">Confirmado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-status-cancelled border border-destructive line-through" />
-                <X className="w-3 h-3 text-destructive-foreground -ml-1" />
-                <span>Cancelado</span>
+                <div className="w-4 h-4 rounded-md bg-status-pending border border-pink-300" />
+                <span className="text-muted-foreground">A confirmar</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-status-free border border-border/50" />
-                <span>Livre</span>
+                <div className="w-4 h-4 rounded-md bg-status-blocked border border-destructive" />
+                <span className="text-muted-foreground">Bloqueado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-md bg-status-free border border-border/50" />
+                <span className="text-muted-foreground">Livre</span>
               </div>
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-primary" />
-                <span>Com observação</span>
+                <span className="text-muted-foreground">Com observação</span>
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-success" />
-                <span>Nota fiscal emitida</span>
+                <span className="text-muted-foreground">NF emitida</span>
               </div>
             </div>
           </Card>
@@ -483,42 +464,34 @@ const Agenda = () => {
                                       height: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 64 - 8}px`,
                                     }}
                                     className={cn(
-                                      "absolute inset-x-1 top-1 z-10 rounded-lg text-left text-xs transition-all hover:shadow-hover border-2 overflow-hidden",
+                                      "absolute inset-x-1 top-1 z-10 rounded-xl text-left text-xs transition-all duration-200 hover:shadow-card-hover border overflow-hidden",
                                       appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus),
                                       appointmentsAtTime.length === 1 && appointmentsAtTime[0].status === "cancelled" && "line-through opacity-70",
-                                      appointmentsAtTime.length > 1 && "bg-background border-primary/30 flex flex-col"
+                                      appointmentsAtTime.length > 1 && "bg-card border-primary/30 flex flex-col"
                                     )}
                                   >
                                     {appointmentsAtTime.length === 1 ? (
-                                      // Single patient layout
-                                      <div className="p-2 h-full">
-                                        <div className="flex items-start justify-between gap-1">
-                                          <div className="font-semibold truncate flex-1">
-                                            {appointmentsAtTime[0].patientName}
-                                          </div>
-                                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                            <div className="flex items-center gap-1">
-                                              {getStatusIcon(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus)}
-                                              {appointmentsAtTime[0].notes && (
-                                                <MessageSquare className="w-3 h-3 text-primary" />
-                                              )}
-                                              {appointmentsAtTime[0].hasInvoice && (
-                                                <FileText className="w-3 h-3 text-success" />
-                                              )}
-                                            </div>
-                                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
-                                              {appointmentsAtTime[0].duration}
-                                            </Badge>
+                                      // Single patient layout - improved
+                                      <div className="p-2.5 h-full flex flex-col">
+                                        <div className="flex items-center justify-between gap-2 min-w-0">
+                                          <span className="font-medium text-[11px] leading-tight truncate flex-1 min-w-0">
+                                            {appointmentsAtTime[0].patientName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                                          </span>
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            {getStatusIcon(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus)}
+                                            {appointmentsAtTime[0].notes && (
+                                              <MessageSquare className="w-3 h-3 text-primary" />
+                                            )}
                                           </div>
                                         </div>
-                                        <div className="text-xs opacity-80 mt-0.5 truncate">
-                                          {appointmentsAtTime[0].therapist}
+                                        <div className="flex items-center justify-between mt-auto pt-1">
+                                          <span className="text-[10px] text-muted-foreground truncate">
+                                            {appointmentsAtTime[0].therapist}
+                                          </span>
+                                          <Badge variant="muted" className="text-[9px] px-1.5 py-0 h-4 font-medium">
+                                            {appointmentsAtTime[0].duration}
+                                          </Badge>
                                         </div>
-                                        {appointmentsAtTime[0].room && (
-                                          <div className="text-xs opacity-70 mt-0.5">
-                                            {appointmentsAtTime[0].room}
-                                          </div>
-                                        )}
                                       </div>
                                     ) : (
                                       // Dual patient layout - split view
