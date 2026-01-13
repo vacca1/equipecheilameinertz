@@ -122,6 +122,14 @@ export default {
         "progressBar": {
           "from": { width: "0%" },
           "to": { width: "100%" }
+        },
+        "fadeInUp": {
+          "from": { opacity: "0", transform: "translateY(8px)" },
+          "to": { opacity: "1", transform: "translateY(0)" }
+        },
+        "scaleIn": {
+          "from": { opacity: "0", transform: "scale(0.95)" },
+          "to": { opacity: "1", transform: "scale(1)" }
         }
       },
       animation: {
@@ -130,15 +138,25 @@ export default {
         "logo-entry": "logoEntry 0.8s ease-out forwards",
         "logo-pulse": "logoPulse 1s ease-in-out 1.5s",
         "fade-in": "fadeIn 0.6s ease-out forwards",
+        "fade-in-up": "fadeInUp 0.4s ease-out",
+        "scale-in": "scaleIn 0.2s ease-out",
         "dot-pulse": "dotPulse 1.4s ease-in-out infinite",
         "slide-up": "slideUp 0.7s cubic-bezier(0.4, 0.0, 0.2, 1) forwards",
         "float": "float 10s infinite",
         "progress-bar": "progressBar 3.5s linear forwards"
       },
       boxShadow: {
-        'soft': '0 4px 20px rgba(79, 127, 255, 0.08)',
-        'hover': '0 8px 30px rgba(79, 127, 255, 0.12)',
-        'inset': 'inset 2px 2px 5px rgba(79, 127, 255, 0.1), inset -2px -2px 5px rgba(255, 255, 255, 0.7)',
+        'card': 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
+        'elevated': 'var(--shadow-elevated)',
+        'soft': 'var(--shadow-soft)',
+        'hover': 'var(--shadow-hover)',
+      },
+      transitionDuration: {
+        '250': '250ms',
+      },
+      transitionTimingFunction: {
+        'premium': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
     },
   },
