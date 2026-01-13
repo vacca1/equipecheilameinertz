@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Check, Clock, X, Lock, FileText, Copy, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Check, Clock, X, Lock, FileText, Copy, MessageSquare, StickyNote, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { therapists } from "@/data/therapists";
 import { useAppointments, useCopyWeekAppointments } from "@/hooks/useAppointments";
+import { useDayNotes } from "@/hooks/useDayNotes";
+import { useWaitingList } from "@/hooks/useWaitingList";
+import { usePatients } from "@/hooks/usePatients";
+import { DayNotesPopover } from "@/components/DayNotesPopover";
+import { WaitingListPopover } from "@/components/WaitingListPopover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -150,6 +155,11 @@ const Agenda = () => {
     therapistFilter
   );
 
+  // Fetch day notes and waiting list
+  const { notes: dayNotes, upsertNote, deleteNote, getNoteForDate } = useDayNotes(startDate, endDate, therapistFilter);
+  const { waitingList, addToWaitingList, removeFromWaitingList, markAsScheduled, getWaitingListForDate, getCountForDate } = useWaitingList(startDate, endDate, therapistFilter);
+  const { data: patients = [] } = usePatients();
+
   // Group appointments by date
   const mockAppointments: Record<string, Appointment[]> = {};
   appointments.forEach((apt) => {
@@ -183,6 +193,20 @@ const Agenda = () => {
 
     setModalOpen(true);
   };
+
+  // Handle scheduling from waiting list
+  const handleScheduleFromWaitingList = (item: typeof waitingList[0]) => {
+    // Mark as scheduled and open modal with prefilled data
+    markAsScheduled.mutate(item.id);
+    const dateObj = new Date(item.date + "T12:00:00");
+    setSelectedAppointment(null);
+    setSelectedDate(dateObj);
+    setSelectedTime(item.preferred_time || "08:00");
+    setModalOpen(true);
+  };
+
+  // Convert patients to simple format for waiting list modal
+  const patientsList = patients.map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <TooltipProvider>
@@ -347,6 +371,52 @@ const Agenda = () => {
                         </div>
                       </th>
                     ))}
+                  </tr>
+                  {/* Notes and Waiting List Row */}
+                  <tr className="bg-muted/30 border-t border-border">
+                    <th className="p-2 text-left text-xs font-medium text-muted-foreground border-r border-border">
+                      <div className="flex items-center gap-1">
+                        <StickyNote className="w-3 h-3" />
+                        <span>Notas</span>
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Users className="w-3 h-3" />
+                        <span>Espera</span>
+                      </div>
+                    </th>
+                    {weekDays.map((day) => {
+                      const dateKey = format(day, "yyyy-MM-dd");
+                      const currentNote = getNoteForDate(dateKey, selectedTherapist !== "Todos" ? selectedTherapist : undefined);
+                      const waitingCount = getCountForDate(dateKey);
+                      const waitingItems = getWaitingListForDate(dateKey);
+
+                      return (
+                        <th key={`notes-${day.toISOString()}`} className="p-2 border-r border-border last:border-r-0">
+                          <div className="flex items-center justify-center gap-2">
+                            <DayNotesPopover
+                              date={dateKey}
+                              therapist={selectedTherapist !== "Todos" ? selectedTherapist : "Geral"}
+                              currentNote={currentNote ? { id: currentNote.id, content: currentNote.content } : undefined}
+                              onSave={(content) => upsertNote.mutate({ 
+                                date: dateKey, 
+                                therapist: selectedTherapist !== "Todos" ? selectedTherapist : "Geral", 
+                                content 
+                              })}
+                              onDelete={(id) => deleteNote.mutate(id)}
+                            />
+                            <WaitingListPopover
+                              date={dateKey}
+                              therapist={selectedTherapist !== "Todos" ? selectedTherapist : "Todos"}
+                              items={waitingItems}
+                              onAdd={(item) => addToWaitingList.mutate(item)}
+                              onRemove={(id) => removeFromWaitingList.mutate(id)}
+                              onSchedule={handleScheduleFromWaitingList}
+                              patients={patientsList}
+                            />
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -560,15 +630,43 @@ const Agenda = () => {
             const day = weekDays[selectedDayIndex];
             const dateKey = format(day, "yyyy-MM-dd");
             const allAppointments = mockAppointments[dateKey] || [];
+            const currentNote = getNoteForDate(dateKey, selectedTherapist !== "Todos" ? selectedTherapist : undefined);
+            const waitingItems = getWaitingListForDate(dateKey);
 
             return (
               <Card className="p-3 sm:p-4 shadow-soft">
-                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 pb-2 border-b border-border flex items-center justify-between">
-                  <span>{format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {allAppointments.length} agend.
-                  </Badge>
-                </h3>
+                <div className="flex items-center justify-between mb-3 sm:mb-4 pb-2 border-b border-border">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-semibold">
+                      {format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    </h3>
+                    <Badge variant="outline" className="text-xs mt-1">
+                      {allAppointments.length} agend.
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <DayNotesPopover
+                      date={dateKey}
+                      therapist={selectedTherapist !== "Todos" ? selectedTherapist : "Geral"}
+                      currentNote={currentNote ? { id: currentNote.id, content: currentNote.content } : undefined}
+                      onSave={(content) => upsertNote.mutate({ 
+                        date: dateKey, 
+                        therapist: selectedTherapist !== "Todos" ? selectedTherapist : "Geral", 
+                        content 
+                      })}
+                      onDelete={(id) => deleteNote.mutate(id)}
+                    />
+                    <WaitingListPopover
+                      date={dateKey}
+                      therapist={selectedTherapist !== "Todos" ? selectedTherapist : "Todos"}
+                      items={waitingItems}
+                      onAdd={(item) => addToWaitingList.mutate(item)}
+                      onRemove={(id) => removeFromWaitingList.mutate(id)}
+                      onSchedule={handleScheduleFromWaitingList}
+                      patients={patientsList}
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   {timeSlots.map((time) => {
                     const appointmentsAtTime = allAppointments.filter((a) => a.time === time);

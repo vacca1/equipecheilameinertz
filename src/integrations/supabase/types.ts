@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_day_notes: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          date: string
+          id: string
+          therapist: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          date: string
+          id?: string
+          therapist: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          therapist?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           attendance_status: string | null
@@ -632,6 +659,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      waiting_list: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          notes: string | null
+          patient_id: string | null
+          patient_name: string
+          preferred_time: string | null
+          priority: number | null
+          status: string | null
+          therapist: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          patient_name: string
+          preferred_time?: string | null
+          priority?: number | null
+          status?: string | null
+          therapist?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          patient_name?: string
+          preferred_time?: string | null
+          priority?: number | null
+          status?: string | null
+          therapist?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waiting_list_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
