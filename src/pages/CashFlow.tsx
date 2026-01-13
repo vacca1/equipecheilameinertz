@@ -160,25 +160,17 @@ export default function CashFlow() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header with Icon */}
+    <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl shadow-soft">
-            <DollarSign className="w-8 h-8 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              Controle de Caixa
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Entradas, saídas e fechamento por fisioterapeuta
-            </p>
-          </div>
+        <div>
+          <h1 className="page-title">Controle de Caixa</h1>
+          <p className="page-subtitle">
+            Entradas, saídas e fechamento por fisioterapeuta
+          </p>
         </div>
         <Button 
           variant="outline" 
-          className="shadow-soft"
           onClick={() => {
             const periodLabel = customPeriod && customStartDate && customEndDate
               ? `${format(customStartDate, "dd/MM/yyyy")} - ${format(customEndDate, "dd/MM/yyyy")}`
@@ -192,173 +184,155 @@ export default function CashFlow() {
         </Button>
       </div>
 
-      {/* Seletor de Período */}
+      {/* Period Selector */}
       <div className="flex gap-2 flex-wrap">
-        <Button
-          variant={!customPeriod && period === "week" ? "default" : "outline"}
-          onClick={() => {
-            setPeriod("week");
-            setCustomPeriod(false);
-          }}
-        >
-          Esta Semana
-        </Button>
-        <Button
-          variant={!customPeriod && period === "month" ? "default" : "outline"}
-          onClick={() => {
-            setPeriod("month");
-            setCustomPeriod(false);
-          }}
-        >
-          Este Mês
-        </Button>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant={customPeriod ? "default" : "outline"}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Personalizado
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Data Inicial</label>
-                <Calendar
-                  mode="single"
-                  selected={customStartDate}
-                  onSelect={(date) => {
-                    setCustomStartDate(date);
-                    if (date) setCustomPeriod(true);
-                  }}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
+        <div className="inline-flex h-10 items-center gap-1 rounded-xl bg-muted/50 p-1">
+          <Button
+            variant={!customPeriod && period === "week" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setPeriod("week");
+              setCustomPeriod(false);
+            }}
+            className="rounded-lg"
+          >
+            Esta Semana
+          </Button>
+          <Button
+            variant={!customPeriod && period === "month" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setPeriod("month");
+              setCustomPeriod(false);
+            }}
+            className="rounded-lg"
+          >
+            Este Mês
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant={customPeriod ? "default" : "ghost"} size="sm" className="rounded-lg">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Personalizado
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Data Inicial</label>
+                  <Calendar
+                    mode="single"
+                    selected={customStartDate}
+                    onSelect={(date) => {
+                      setCustomStartDate(date);
+                      if (date) setCustomPeriod(true);
+                    }}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Data Final</label>
+                  <Calendar
+                    mode="single"
+                    selected={customEndDate}
+                    onSelect={(date) => {
+                      setCustomEndDate(date);
+                      if (date && customStartDate) setCustomPeriod(true);
+                    }}
+                    className="pointer-events-auto"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Data Final</label>
-                <Calendar
-                  mode="single"
-                  selected={customEndDate}
-                  onSelect={(date) => {
-                    setCustomEndDate(date);
-                    if (date && customStartDate) setCustomPeriod(true);
-                  }}
-                  className="pointer-events-auto"
-                />
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-success/10 to-success/5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-success/10 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-success" />
-              </div>
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Entradas
-              </CardTitle>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-success/10 rounded-xl">
+              <TrendingUp className="w-5 h-5 text-success" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-success">
-              R$ {totalIncome.toFixed(2)}
-            </div>
-          </CardContent>
+            <span className="metric-label">Total de Entradas</span>
+          </div>
+          <div className="metric-value text-success">
+            R$ {totalIncome.toFixed(2)}
+          </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-destructive/10 rounded-lg">
-                <TrendingDown className="w-5 h-5 text-destructive" />
-              </div>
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Saídas
-              </CardTitle>
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-destructive/10 rounded-xl">
+              <TrendingDown className="w-5 h-5 text-destructive" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-destructive">
-              R$ {totalExpenses.toFixed(2)}
-            </div>
-          </CardContent>
+            <span className="metric-label">Total de Saídas</span>
+          </div>
+          <div className="metric-value text-destructive">
+            R$ {totalExpenses.toFixed(2)}
+          </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <DollarSign className="w-5 h-5 text-primary" />
-              </div>
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Saldo do Período
-              </CardTitle>
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <DollarSign className="w-5 h-5 text-primary" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">
-              R$ {balance.toFixed(2)}
-            </div>
-          </CardContent>
+            <span className="metric-label">Saldo do Período</span>
+          </div>
+          <div className={cn("metric-value", balance >= 0 ? "text-success" : "text-destructive")}>
+            R$ {balance.toFixed(2)}
+          </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-warning/10 rounded-lg">
-                <Clock className="w-5 h-5 text-warning" />
-              </div>
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pagamentos Pendentes
-              </CardTitle>
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-warning/10 rounded-xl">
+              <Clock className="w-5 h-5 text-warning" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-warning">
-              R$ {pendingPayments.toFixed(2)}
-            </div>
-          </CardContent>
+            <span className="metric-label">Pagamentos Pendentes</span>
+          </div>
+          <div className="metric-value text-warning">
+            R$ {pendingPayments.toFixed(2)}
+          </div>
         </Card>
       </div>
 
-      {/* Botões de Ação */}
-      <div className="flex gap-2">
-        <Button onClick={() => setIncomeModalOpen(true)}>
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <Button onClick={() => setIncomeModalOpen(true)} className="shadow-sm">
           <Plus className="w-4 h-4 mr-2" />
           Adicionar Entrada
         </Button>
-        <Button variant="destructive" onClick={() => setExpenseModalOpen(true)}>
+        <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setExpenseModalOpen(true)}>
           <Minus className="w-4 h-4 mr-2" />
           Adicionar Saída
         </Button>
       </div>
 
-      {/* Tabelas */}
+      {/* Tables */}
       <Tabs defaultValue="income" className="w-full">
-        <TabsList className="flex w-full gap-1 overflow-x-auto scrollbar-hide">
-          <TabsTrigger value="income" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="income" className="flex-1 sm:flex-none">
             Entradas
           </TabsTrigger>
-          <TabsTrigger value="expenses" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+          <TabsTrigger value="expenses" className="flex-1 sm:flex-none">
             Saídas
           </TabsTrigger>
-          <TabsTrigger value="therapists" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4 py-2">
+          <TabsTrigger value="therapists" className="flex-1 sm:flex-none">
             <span className="hidden sm:inline">Fechamento por Fisioterapeuta</span>
             <span className="sm:hidden">Fechamento</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="income" className="mt-6 space-y-4">
-          {/* Filtros */}
-          <div className="flex gap-2 flex-wrap">
+        <TabsContent value="income" className="mt-6 space-y-6">
+          {/* Filters */}
+          <div className="flex gap-3 flex-wrap">
             <Select value={filterTherapist} onValueChange={setFilterTherapist}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
+              <SelectTrigger className="w-[180px] bg-card">
+                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Fisioterapeuta" />
               </SelectTrigger>
               <SelectContent>
@@ -370,7 +344,7 @@ export default function CashFlow() {
             </Select>
 
             <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-card">
                 <SelectValue placeholder="Forma Pagamento" />
               </SelectTrigger>
               <SelectContent>
@@ -383,7 +357,7 @@ export default function CashFlow() {
             </Select>
 
             <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-card">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -394,11 +368,11 @@ export default function CashFlow() {
             </Select>
           </div>
 
-          {/* Tabela de Entradas */}
-          <div className="border rounded-lg">
+          {/* Income Table */}
+          <Card className="overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Data</TableHead>
                   <TableHead>Paciente</TableHead>
                   <TableHead>Fisioterapeuta</TableHead>
@@ -407,7 +381,7 @@ export default function CashFlow() {
                   <TableHead>Comissão</TableHead>
                   <TableHead>NF</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -472,7 +446,7 @@ export default function CashFlow() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
         </TabsContent>
 
         <TabsContent value="expenses" className="mt-6 space-y-4">
