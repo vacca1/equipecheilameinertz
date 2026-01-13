@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import SkyToggle from "@/components/ui/sky-toggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 const navigation = [
   { name: "Agenda", href: "/agenda", icon: Calendar },
   { name: "Pacientes", href: "/patients", icon: Users },
@@ -78,30 +78,30 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </nav>
 
-          {/* Theme Toggle & User Section */}
+          {/* Logout Button with Theme Toggle */}
           <div className={cn(
-            "p-3 border-t border-sidebar-border space-y-3",
-            sidebarCollapsed ? "flex flex-col items-center" : ""
+            "p-3 border-t border-sidebar-border",
+            sidebarCollapsed ? "flex flex-col items-center gap-3" : ""
           )}>
-            {/* Theme Toggle */}
-            <div className="flex justify-center">
-              <SkyToggle />
-            </div>
-
-            {/* Logout Button */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  onClick={signOut}
-                  className={cn(
-                    "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    sidebarCollapsed ? "w-10 h-10 p-0" : "w-full justify-start gap-3"
-                  )}
-                >
-                  <LogOut className="w-5 h-5 flex-shrink-0" />
-                  {!sidebarCollapsed && <span>Sair</span>}
-                </Button>
+                <div className={cn(
+                  "flex items-center",
+                  sidebarCollapsed ? "flex-col gap-3" : "justify-between"
+                )}>
+                  <Button
+                    variant="ghost"
+                    onClick={signOut}
+                    className={cn(
+                      "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      sidebarCollapsed ? "w-10 h-10 p-0" : "justify-start gap-3"
+                    )}
+                  >
+                    <LogOut className="w-5 h-5 flex-shrink-0" />
+                    {!sidebarCollapsed && <span>Sair</span>}
+                  </Button>
+                  <ThemeToggle />
+                </div>
               </TooltipTrigger>
               {sidebarCollapsed && (
                 <TooltipContent side="right" className="font-medium">
@@ -142,22 +142,21 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </NavLink>
                 ))}
                 
-                {/* Mobile Theme Toggle */}
-                <div className="flex justify-center py-3 border-t border-border mt-2">
-                  <SkyToggle />
+                {/* Mobile Logout with Theme Toggle */}
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border mt-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      signOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="justify-start gap-3 p-0"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Sair
+                  </Button>
+                  <ThemeToggle />
                 </div>
-
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    signOut();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full justify-start gap-3 px-4 py-3"
-                >
-                  <LogOut className="w-5 h-5" />
-                  Sair
-                </Button>
               </nav>
             </div>
           )}
