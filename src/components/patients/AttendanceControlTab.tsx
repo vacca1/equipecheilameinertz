@@ -33,6 +33,7 @@ import {
   Filter,
   Edit3,
   Save,
+  Link,
 } from "lucide-react";
 import { format, parseISO, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -462,6 +463,49 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     updateEvolution.mutate({ appointmentId, notes: evolutionText });
   };
 
+  // Vincular sessão avulsa ao pacote ativo
+  const linkToPackage = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      if (!activePackage) throw new Error("Nenhum pacote ativo");
+      
+      const newUsedSessions = (activePackage.used_sessions || 0) + 1;
+      const newStatus = newUsedSessions >= activePackage.total_sessions ? "completed" : "active";
+      
+      // Vincular appointment ao pacote
+      const { error: appointmentError } = await supabase
+        .from("appointments")
+        .update({ package_id: activePackage.id })
+        .eq("id", appointmentId);
+      
+      if (appointmentError) throw appointmentError;
+      
+      // Atualizar contador do pacote
+      const { error: packageError } = await supabase
+        .from("patient_packages")
+        .update({
+          used_sessions: newUsedSessions,
+          status: newStatus,
+        })
+        .eq("id", activePackage.id);
+      
+      if (packageError) throw packageError;
+      
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attendance-control", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["active-package", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["all-patient-packages", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["patient-packages", patientId] });
+      queryClient.invalidateQueries({ queryKey: ["patient-credits", patientId] });
+      toast.success("✅ Sessão vinculada ao pacote!");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Erro ao vincular sessão ao pacote");
+    },
+  });
+
 
   const pastSessions = sessions.filter((s) => {
     try {
@@ -519,8 +563,20 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     return "scheduled";
   };
 
-  // Verificar se uma sessão foi paga (busca no incomes pela observação ou data)
+  // Verificar se uma sessão foi paga (busca no incomes ou via pacote)
   const getSessionPayment = (session: AttendanceSession) => {
+    // Se tem package_id, está paga via pacote
+    if (session.package_id) {
+      const linkedPackage = allPackages.find(p => p.id === session.package_id);
+      return {
+        value: linkedPackage?.purchase_price ? (linkedPackage.purchase_price / linkedPackage.total_sessions) : 0,
+        payment_method: "pacote",
+        payment_status: "received",
+        viaPackage: true,
+        packageName: linkedPackage?.package?.name || "Pacote"
+      };
+    }
+    
     // Busca income que menciona o número da sessão ou que foi criado na mesma data
     const sessionPayment = incomes.find((income) => {
       const matchesSessionNumber = income.observations?.includes(`#${session.session_number}`);
@@ -528,7 +584,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
       return (matchesSessionNumber || matchesDate) && income.payment_status === "received";
     });
     
-    return sessionPayment;
+    return sessionPayment ? { ...sessionPayment, viaPackage: false } : null;
   };
 
   // Calcular contagem de sessões filtradas
@@ -584,6 +640,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     debito: "Débito",
     credito: "Crédito",
     transferencia: "Transferência",
+    pacote: "Pacote",
   };
 
   if (isLoading) {
@@ -1191,10 +1248,16 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                       {isPaid && payment && (
                                         <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
                                           <DollarSign className="h-4 w-4" />
-                                          R$ {Number(payment.value).toFixed(2).replace(".", ",")} 
-                                          <span className="text-green-600/70">
-                                            ({paymentMethodLabels[payment.payment_method || ""] || payment.payment_method || "N/A"})
-                                          </span>
+                                          {(payment as any)?.viaPackage ? (
+                                            <span>Via {(payment as any).packageName}</span>
+                                          ) : (
+                                            <>
+                                              R$ {Number(payment.value).toFixed(2).replace(".", ",")} 
+                                              <span className="text-green-600/70">
+                                                ({paymentMethodLabels[payment.payment_method || ""] || payment.payment_method || "N/A"})
+                                              </span>
+                                            </>
+                                          )}
                                         </div>
                                       )}
 
@@ -1221,7 +1284,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                         isPaid ? (
                                           <Badge className="bg-green-100 text-green-800">
                                             <CheckCircle className="h-3 w-3 mr-1" />
-                                            Pago
+                                            {(payment as any)?.viaPackage ? "Pago (Pacote)" : "Pago"}
                                           </Badge>
                                         ) : (
                                           <Badge className="bg-orange-100 text-orange-800">
@@ -1275,8 +1338,22 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                       </div>
                                     )}
 
-                                    {/* Botão Registrar Pagamento (só mostra se não pago) */}
-                                    {isUnpaidPresent && payingSessionId !== session.id && (
+                                    {/* Botão Vincular ao Pacote (sessão presente sem pacote vinculado, e há pacote ativo) */}
+                                    {isPresent && !session.package_id && activePackage && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-primary border-primary hover:bg-primary/10"
+                                        onClick={() => linkToPackage.mutate(session.id)}
+                                        disabled={linkToPackage.isPending}
+                                      >
+                                        <Link className="h-4 w-4 mr-1" />
+                                        {linkToPackage.isPending ? "Vinculando..." : "Vincular ao Pacote"}
+                                      </Button>
+                                    )}
+
+                                    {/* Botão Registrar Pagamento (só mostra se não pago e não tem pacote) */}
+                                    {isUnpaidPresent && !session.package_id && payingSessionId !== session.id && (
                                       <Button
                                         size="sm"
                                         variant="outline"
@@ -1284,7 +1361,7 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
                                         onClick={() => setPayingSessionId(session.id)}
                                       >
                                         <DollarSign className="h-4 w-4 mr-1" />
-                                        Registrar Pagamento
+                                        Pagamento Avulso
                                       </Button>
                                     )}
 
