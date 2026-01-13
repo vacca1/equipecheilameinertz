@@ -327,8 +327,44 @@ const Agenda = () => {
             ))}
           </div>
 
-          {/* Legend */}
-          <Card className="p-4">
+          {/* Legend - Collapsible on mobile */}
+          <details className="lg:hidden">
+            <summary className="cursor-pointer text-sm font-medium text-muted-foreground p-3 bg-card rounded-lg border border-border flex items-center justify-between">
+              <span>Ver Legenda</span>
+              <ChevronRight className="w-4 h-4" />
+            </summary>
+            <Card className="p-3 mt-2">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-md bg-emerald-100 border-2 border-emerald-500" />
+                  <span>Presente</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-md bg-orange-100 border border-orange-400" />
+                  <span>Faltou</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-md bg-status-confirmed border border-success/20" />
+                  <span>Confirmado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-md bg-status-pending border border-pink-300" />
+                  <span>A confirmar</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-md bg-status-blocked border border-destructive" />
+                  <span>Bloqueado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-md bg-status-free border border-border/50" />
+                  <span>Livre</span>
+                </div>
+              </div>
+            </Card>
+          </details>
+
+          {/* Legend - Desktop */}
+          <Card className="p-4 hidden lg:block">
             <div className="flex flex-wrap gap-3 sm:gap-5 text-xs sm:text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-md bg-emerald-100 border-2 border-emerald-500" />

@@ -214,59 +214,59 @@ const Reports = () => {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Card 1: Total Revenue */}
-        <Card className="p-6 shadow-soft relative overflow-hidden">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
-              <DollarSign className="w-6 h-6 text-primary" />
+        <Card className="p-4 sm:p-6 shadow-soft relative overflow-hidden">
+          <div className="flex items-start justify-between mb-2 sm:mb-4">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
           </div>
           <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Faturamento Total</div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="text-xs sm:text-sm text-muted-foreground">Faturamento</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </div>
-            <div className="text-xs text-muted-foreground">{period === "week" ? "esta semana" : "este período"}</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{period === "week" ? "esta semana" : "este período"}</div>
           </div>
         </Card>
 
         {/* Card 2: Total Sessions */}
-        <Card className="p-6 shadow-soft relative overflow-hidden">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl">
-              <Calendar className="w-6 h-6 text-success" />
+        <Card className="p-4 sm:p-6 shadow-soft relative overflow-hidden">
+          <div className="flex items-start justify-between mb-2 sm:mb-4">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
             </div>
           </div>
           <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Total de Sessões</div>
-            <div className="text-3xl font-bold text-success">{totalSessions}</div>
-            <div className="text-xs text-muted-foreground">{period === "week" ? "esta semana" : "este período"}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Sessões</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-success">{totalSessions}</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{period === "week" ? "esta semana" : "este período"}</div>
           </div>
         </Card>
 
         {/* Card 3: Occupancy Rate */}
-        <Card className="p-6 shadow-soft relative overflow-hidden">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-warning/20 to-warning/5 rounded-xl">
-              <Clock className="w-6 h-6 text-warning" />
+        <Card className="p-4 sm:p-6 shadow-soft relative overflow-hidden col-span-2 lg:col-span-1">
+          <div className="flex items-start justify-between mb-2 sm:mb-4">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-warning/20 to-warning/5 rounded-xl">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
             </div>
           </div>
           <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Taxa de Ocupação</div>
-            <div className="text-3xl font-bold text-warning">{occupancyRate}%</div>
-            <div className="text-xs text-muted-foreground">da agenda ocupada</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Ocupação</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-warning">{occupancyRate}%</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">da agenda ocupada</div>
           </div>
-          {/* Mini donut chart */}
-          <div className="absolute bottom-0 right-0 w-20 h-20 opacity-30">
+          {/* Mini donut chart - hidden on small mobile */}
+          <div className="absolute bottom-0 right-0 w-16 h-16 sm:w-20 sm:h-20 opacity-30 hidden sm:block">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={[{ value: occupancyRate }, { value: 100 - occupancyRate }]}
                   cx="50%"
                   cy="50%"
-                  innerRadius={20}
-                  outerRadius={35}
+                  innerRadius={15}
+                  outerRadius={28}
                   dataKey="value"
                 >
                   <Cell fill="hsl(var(--warning))" />
@@ -279,53 +279,57 @@ const Reports = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Revenue Distribution Pie Chart */}
-        <Card className="p-6 shadow-soft">
-          <h2 className="text-xl font-bold mb-6">Distribuição de Receita por Fisioterapeuta</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={revenueDistribution}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percentage }) => `${name}: ${percentage}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {revenueDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => `R$ ${value}`} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="mt-4 space-y-2">
+        <Card className="p-4 sm:p-6 shadow-soft">
+          <h2 className="text-base sm:text-xl font-bold mb-4 sm:mb-6">Receita por Fisioterapeuta</h2>
+          <div className="h-[200px] sm:h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={revenueDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percentage }) => `${percentage}%`}
+                  outerRadius={70}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {revenueDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `R$ ${value}`} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
             {revenueDistribution.map((item, index) => (
               <div key={item.name} className="flex items-center justify-between p-2 bg-muted/30 rounded">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }} />
-                  <span className="text-sm font-medium">{item.name}</span>
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index] }} />
+                  <span className="text-xs sm:text-sm font-medium truncate">{item.name}</span>
                 </div>
-                <span className="text-sm font-bold">R$ {item.value.toLocaleString()}</span>
+                <span className="text-xs sm:text-sm font-bold whitespace-nowrap">R$ {item.value.toLocaleString()}</span>
               </div>
             ))}
           </div>
         </Card>
 
         {/* Payment Methods Distribution */}
-        <Card className="p-6 shadow-soft">
-          <h2 className="text-xl font-bold mb-6">Formas de Pagamento</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={paymentMethods}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip formatter={(value) => `R$ ${value}`} />
-              <Bar dataKey="value" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <Card className="p-4 sm:p-6 shadow-soft">
+          <h2 className="text-base sm:text-xl font-bold mb-4 sm:mb-6">Formas de Pagamento</h2>
+          <div className="h-[200px] sm:h-[300px] overflow-x-auto">
+            <ResponsiveContainer width="100%" height="100%" minWidth={280}>
+              <BarChart data={paymentMethods}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value) => `R$ ${value}`} />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </Card>
       </div>
 
@@ -387,21 +391,21 @@ const Reports = () => {
       )}
 
       {/* Report Actions */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="p-6 shadow-soft hover:shadow-hover transition-all cursor-pointer">
-          <FileText className="w-8 h-8 text-primary mb-3" />
-          <h3 className="font-semibold mb-2">Relatório Semanal</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Resumo completo da última semana com entradas, saídas e fechamentos.
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="p-4 sm:p-6 shadow-soft hover:shadow-hover transition-all cursor-pointer">
+          <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-primary mb-2 sm:mb-3" />
+          <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Relatório Semanal</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">
+            Resumo da semana com entradas e saídas.
           </p>
-          <Button variant="outline" className="w-full">Gerar PDF</Button>
+          <Button variant="outline" className="w-full text-sm" size="sm">Gerar PDF</Button>
         </Card>
 
-        <Card className="p-6 shadow-soft hover:shadow-hover transition-all cursor-pointer">
-          <FileText className="w-8 h-8 text-success mb-3" />
-          <h3 className="font-semibold mb-2">Relatório Mensal</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Análise completa do mês com gráficos e comparativos.
+        <Card className="p-4 sm:p-6 shadow-soft hover:shadow-hover transition-all cursor-pointer">
+          <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-success mb-2 sm:mb-3" />
+          <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Relatório Mensal</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">
+            Análise completa do mês com gráficos.
           </p>
           <Button variant="outline" className="w-full">Gerar PDF</Button>
         </Card>

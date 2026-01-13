@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 const navigation = [
   { name: "Agenda", href: "/agenda", icon: Calendar },
   { name: "Pacientes", href: "/patients", icon: Users },
@@ -112,61 +113,47 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </aside>
 
-        {/* Mobile Header */}
-        <header className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+        {/* Mobile Header - Compact */}
+        <header className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
           <div className="flex h-full items-center justify-between px-4">
-            <img src={logo} alt="Logo" className="h-8 object-contain" />
-            <button
-              className="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="absolute top-16 left-0 right-0 bg-card border-b border-border shadow-elevated animate-fade-in-up">
-              <nav className="p-4 space-y-1">
-                {navigation.map((item) => (
-                  <NavLink
-                    key={item.name}
-                    to={item.href}
-                    end
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground rounded-xl transition-all hover:bg-muted hover:text-foreground"
-                    activeClassName="bg-primary/10 text-primary"
-                  >
-                    <item.icon className="w-5 h-5" />
-                    {item.name}
-                  </NavLink>
-                ))}
-                
-                {/* Mobile Logout with Theme Toggle */}
-                <div className="flex items-center justify-between px-4 py-3 border-t border-border mt-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      signOut();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="justify-start gap-3 p-0"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Sair
-                  </Button>
-                  <ThemeToggle />
-                </div>
-              </nav>
+            <img src={logo} alt="Logo" className="h-7 object-contain" />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="h-9 w-9"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
-          )}
+          </div>
         </header>
+
+        {/* Bottom Navigation - Mobile Only */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">
+          <div className="flex justify-around items-center h-16">
+            {navigation.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                end
+                className="flex flex-col items-center justify-center gap-1 px-3 py-2 min-w-[64px] text-muted-foreground transition-colors"
+                activeClassName="text-primary"
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">{item.name}</span>
+              </NavLink>
+            ))}
+          </div>
+        </nav>
 
         {/* Main Content */}
         <main
           className={cn(
             "flex-1 min-h-screen transition-all duration-300",
-            "pt-16 md:pt-0",
+            "pt-14 pb-20 md:pt-0 md:pb-0", // Mobile: header + bottom nav padding
             sidebarCollapsed ? "md:ml-[72px]" : "md:ml-64"
           )}
         >

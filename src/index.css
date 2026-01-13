@@ -301,3 +301,42 @@
     box-shadow: var(--shadow-hover);
   }
 }
+
+/* Mobile-first utilities */
+@layer utilities {
+  /* Safe area for bottom navigation */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Minimum touch target for accessibility */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Mobile-specific responsive adjustments */
+@media (max-width: 640px) {
+  /* Better touch targets */
+  button,
+  [role="button"],
+  .touch-target {
+    min-height: 44px;
+  }
+
+  /* Reduce metric value size on mobile */
+  .metric-value {
+    @apply text-2xl;
+  }
+
+  /* Page title smaller on mobile */
+  .page-title {
+    @apply text-xl;
+  }
+
+  /* Cards with better mobile spacing */
+  .card-premium {
+    @apply p-4;
+  }
+}
