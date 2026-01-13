@@ -464,74 +464,85 @@ const Agenda = () => {
                                       height: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 64 - 8}px`,
                                     }}
                                     className={cn(
-                                      "absolute inset-x-1 top-1 z-10 rounded-xl text-left text-xs transition-all duration-200 hover:shadow-card-hover border overflow-hidden",
+                                      "absolute inset-x-1 top-1 z-10 rounded-2xl text-left text-xs transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 border-0 overflow-hidden group",
                                       appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus),
                                       appointmentsAtTime.length === 1 && appointmentsAtTime[0].status === "cancelled" && "line-through opacity-70",
-                                      appointmentsAtTime.length > 1 && "bg-card border-primary/30 flex flex-col"
+                                      appointmentsAtTime.length > 1 && "bg-card shadow-sm flex flex-col"
                                     )}
                                   >
                                     {appointmentsAtTime.length === 1 ? (
-                                      // Single patient layout - improved
-                                      <div className="p-2.5 h-full flex flex-col">
-                                        <div className="flex items-center justify-between gap-2 min-w-0">
-                                          <span className="font-medium text-[11px] leading-tight truncate flex-1 min-w-0">
+                                      // Single patient layout - Premium card style
+                                      <div className="p-3 h-full flex flex-col relative">
+                                        {/* Status indicator dot */}
+                                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                                          <div className={cn(
+                                            "w-2 h-2 rounded-full",
+                                            appointmentsAtTime[0].attendanceStatus === "present" && "bg-emerald-500",
+                                            appointmentsAtTime[0].attendanceStatus === "absent" && "bg-orange-500",
+                                            appointmentsAtTime[0].status === "confirmed" && !appointmentsAtTime[0].attendanceStatus && "bg-success",
+                                            appointmentsAtTime[0].status === "pending" && "bg-warning",
+                                            appointmentsAtTime[0].status === "blocked" && "bg-destructive",
+                                          )} />
+                                        </div>
+                                        
+                                        {/* Patient name - larger and clearer */}
+                                        <div className="flex-1 min-w-0 pr-4">
+                                          <span className="font-semibold text-[12px] leading-tight line-clamp-2 text-foreground">
                                             {appointmentsAtTime[0].patientName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
                                           </span>
-                                          <div className="flex items-center gap-1 flex-shrink-0">
-                                            {getStatusIcon(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus)}
-                                            {appointmentsAtTime[0].notes && (
-                                              <MessageSquare className="w-3 h-3 text-primary" />
-                                            )}
-                                          </div>
                                         </div>
-                                        <div className="flex items-center justify-between mt-auto pt-1">
-                                          <span className="text-[10px] text-muted-foreground truncate">
+                                        
+                                        {/* Bottom info row */}
+                                        <div className="flex items-center justify-between mt-auto pt-1.5 border-t border-black/5">
+                                          <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[60%]">
                                             {appointmentsAtTime[0].therapist}
                                           </span>
-                                          <Badge variant="muted" className="text-[9px] px-1.5 py-0 h-4 font-medium">
-                                            {appointmentsAtTime[0].duration}
-                                          </Badge>
+                                          <div className="flex items-center gap-1.5">
+                                            {appointmentsAtTime[0].notes && (
+                                              <MessageSquare className="w-3 h-3 text-primary opacity-70" />
+                                            )}
+                                            <span className="text-[9px] font-medium text-muted-foreground bg-black/5 px-1.5 py-0.5 rounded-md">
+                                              {appointmentsAtTime[0].duration}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     ) : (
-                                      // Dual patient layout - split view
+                                      // Dual patient layout - split view premium
                                       <div className="flex flex-1 h-full">
                                         {appointmentsAtTime.map((apt, aptIdx) => (
                                           <div
                                             key={apt.id}
                                             className={cn(
-                                              "flex-1 p-1.5 flex flex-col",
+                                              "flex-1 p-2 flex flex-col relative",
                                               getStatusColor(apt.status, apt.attendanceStatus),
                                               apt.status === "cancelled" && "line-through opacity-70",
-                                              aptIdx === 0 && "rounded-l-md border-r border-border/50",
-                                              aptIdx === 1 && "rounded-r-md"
+                                              aptIdx === 0 && "rounded-l-xl border-r border-black/5",
+                                              aptIdx === 1 && "rounded-r-xl"
                                             )}
                                           >
-                                            <div className="flex items-start justify-between gap-0.5">
-                                              <div className="font-semibold text-[10px] leading-tight truncate flex-1">
-                                                {apt.patientName}
-                                              </div>
-                                              <div className="flex items-center gap-0.5 flex-shrink-0">
-                                                {getStatusIcon(apt.status, apt.attendanceStatus)}
-                                                {apt.notes && (
-                                                  <MessageSquare className="w-2.5 h-2.5 text-primary" />
-                                                )}
-                                                {apt.hasInvoice && (
-                                                  <FileText className="w-2.5 h-2.5 text-success" />
-                                                )}
-                                              </div>
+                                            {/* Status dot */}
+                                            <div className="absolute top-1.5 right-1.5">
+                                              <div className={cn(
+                                                "w-1.5 h-1.5 rounded-full",
+                                                apt.attendanceStatus === "present" && "bg-emerald-500",
+                                                apt.attendanceStatus === "absent" && "bg-orange-500",
+                                                apt.status === "confirmed" && !apt.attendanceStatus && "bg-success",
+                                                apt.status === "pending" && "bg-warning",
+                                              )} />
                                             </div>
-                                            {apt.room && (
-                                              <div className="text-[9px] opacity-70 mt-0.5 truncate">
-                                                {apt.room}
-                                              </div>
+                                            <div className="font-semibold text-[10px] leading-tight line-clamp-2 pr-3 flex-1">
+                                              {apt.patientName}
+                                            </div>
+                                            {apt.notes && (
+                                              <MessageSquare className="w-2.5 h-2.5 text-primary opacity-60 mt-0.5" />
                                             )}
                                           </div>
                                         ))}
                                       </div>
                                     )}
                                     {appointmentsAtTime.length > 1 && (
-                                      <div className="text-[9px] text-primary font-medium text-center py-0.5 bg-primary/10 border-t border-primary/20">
+                                      <div className="text-[9px] text-primary font-medium text-center py-1 bg-primary/10 border-t border-primary/10">
                                         🤸 Pilates Dupla
                                       </div>
                                     )}
@@ -572,7 +583,7 @@ const Agenda = () => {
                             ) : (
                               <button
                                 onClick={() => handleCellClick(day, time)}
-                                className="w-full h-full rounded-lg bg-status-free hover:bg-muted transition-colors border border-border/50 hover:border-primary/30"
+                                className="w-full h-full rounded-2xl bg-muted/30 hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-primary/20 hover:shadow-sm"
                               />
                             )}
                           </td>
@@ -688,40 +699,55 @@ const Agenda = () => {
                           <button
                             onClick={() => handleCellClick(day, time)}
                             className={cn(
-                              "flex-1 rounded-lg text-left transition-all border-2 overflow-hidden",
+                              "flex-1 rounded-2xl text-left transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 border-0 overflow-hidden",
                               appointmentsAtTime.length === 1 && getStatusColor(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus),
-                              appointmentsAtTime.length > 1 && "bg-background border-primary/30"
+                              appointmentsAtTime.length > 1 && "bg-card shadow-sm"
                             )}
                           >
                             {appointmentsAtTime.length === 1 ? (
-                              // Single patient layout
-                              <div className="p-2 sm:p-3">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <div className="font-semibold text-sm sm:text-base truncate">{appointmentsAtTime[0].patientName}</div>
-                                    <div className="text-xs sm:text-sm opacity-80 mt-1">
+                              // Single patient layout - Premium mobile card
+                              <div className="p-3 sm:p-4 relative">
+                                {/* Status indicator dot */}
+                                <div className="absolute top-3 right-3">
+                                  <div className={cn(
+                                    "w-2.5 h-2.5 rounded-full",
+                                    appointmentsAtTime[0].attendanceStatus === "present" && "bg-emerald-500",
+                                    appointmentsAtTime[0].attendanceStatus === "absent" && "bg-orange-500",
+                                    appointmentsAtTime[0].status === "confirmed" && !appointmentsAtTime[0].attendanceStatus && "bg-success",
+                                    appointmentsAtTime[0].status === "pending" && "bg-warning",
+                                    appointmentsAtTime[0].status === "blocked" && "bg-destructive",
+                                  )} />
+                                </div>
+                                
+                                <div className="flex items-start gap-3 pr-6">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-semibold text-sm sm:text-base text-foreground">
+                                      {appointmentsAtTime[0].patientName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                                    </div>
+                                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">
                                       {appointmentsAtTime[0].therapist}
                                     </div>
                                     {appointmentsAtTime[0].room && (
-                                      <div className="text-xs opacity-70 mt-1">
+                                      <div className="text-xs text-muted-foreground/70 mt-0.5">
                                         {appointmentsAtTime[0].room}
                                       </div>
                                     )}
                                   </div>
-                                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                    <div className="flex items-center gap-1">
-                                      {getStatusIcon(appointmentsAtTime[0].status, appointmentsAtTime[0].attendanceStatus)}
-                                      {appointmentsAtTime[0].notes && (
-                                        <MessageSquare className="w-3 h-3 text-primary" />
-                                      )}
-                                      {appointmentsAtTime[0].hasInvoice && (
-                                        <FileText className="w-3 h-3 text-success" />
-                                      )}
-                                    </div>
-                                    <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
-                                      {appointmentsAtTime[0].duration}
-                                    </Badge>
+                                </div>
+                                
+                                {/* Bottom row with icons and duration */}
+                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/5">
+                                  <div className="flex items-center gap-2">
+                                    {appointmentsAtTime[0].notes && (
+                                      <MessageSquare className="w-3.5 h-3.5 text-primary opacity-70" />
+                                    )}
+                                    {appointmentsAtTime[0].hasInvoice && (
+                                      <FileText className="w-3.5 h-3.5 text-success opacity-70" />
+                                    )}
                                   </div>
+                                  <span className="text-[10px] font-medium text-muted-foreground bg-black/5 px-2 py-0.5 rounded-md">
+                                    {appointmentsAtTime[0].duration}
+                                  </span>
                                 </div>
                               </div>
                             ) : (
@@ -775,9 +801,9 @@ const Agenda = () => {
                         ) : (
                           <button
                             onClick={() => handleCellClick(day, time)}
-                            className="flex-1 rounded-lg bg-status-free hover:bg-muted transition-colors border border-border/50 p-2 sm:p-3"
+                            className="flex-1 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-primary/20 hover:shadow-sm p-3 sm:p-4"
                           >
-                            <span className="text-xs sm:text-sm text-muted-foreground">Horário livre</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground/70">Horário livre</span>
                           </button>
                         )}
                       </div>
