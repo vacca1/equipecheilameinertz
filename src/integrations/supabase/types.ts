@@ -431,43 +431,58 @@ export type Database = {
       }
       patient_packages: {
         Row: {
+          authorization_code: string | null
+          authorization_date: string | null
           created_at: string | null
           expiration_date: string | null
+          health_plan: string | null
           id: string
+          is_health_plan_authorization: boolean | null
           notes: string | null
           package_id: string
           patient_id: string
           purchase_date: string | null
           purchase_price: number | null
           status: string | null
+          therapist: string | null
           total_sessions: number
           updated_at: string | null
           used_sessions: number | null
         }
         Insert: {
+          authorization_code?: string | null
+          authorization_date?: string | null
           created_at?: string | null
           expiration_date?: string | null
+          health_plan?: string | null
           id?: string
+          is_health_plan_authorization?: boolean | null
           notes?: string | null
           package_id: string
           patient_id: string
           purchase_date?: string | null
           purchase_price?: number | null
           status?: string | null
+          therapist?: string | null
           total_sessions: number
           updated_at?: string | null
           used_sessions?: number | null
         }
         Update: {
+          authorization_code?: string | null
+          authorization_date?: string | null
           created_at?: string | null
           expiration_date?: string | null
+          health_plan?: string | null
           id?: string
+          is_health_plan_authorization?: boolean | null
           notes?: string | null
           package_id?: string
           patient_id?: string
           purchase_date?: string | null
           purchase_price?: number | null
           status?: string | null
+          therapist?: string | null
           total_sessions?: number
           updated_at?: string | null
           used_sessions?: number | null

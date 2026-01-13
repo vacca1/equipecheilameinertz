@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Package, Calendar, AlertCircle, Plus } from 'lucide-react';
+import { Package, Calendar, AlertCircle, Plus, ClipboardList, Hash, User } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
 import {
@@ -24,6 +24,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { format, parseISO } from 'date-fns';
 
 interface PatientPackagesCardProps {
   patientId: string;
@@ -73,13 +74,17 @@ export function PatientPackagesCard({ patientId }: PatientPackagesCardProps) {
     return <Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>;
   }
 
+  // Separar pacotes e guias de convênio
+  const healthPlanAuths = packages?.filter(p => p.is_health_plan_authorization) || [];
+  const regularPackages = packages?.filter(p => !p.is_health_plan_authorization) || [];
+
   return (
     <>
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Package className="h-5 w-5 text-blue-600" />
-            <h3 className="font-semibold text-lg">Pacotes de Sessões</h3>
+            <h3 className="font-semibold text-lg">Pacotes e Guias</h3>
           </div>
           
           <div className="flex items-center gap-2">
@@ -98,13 +103,37 @@ export function PatientPackagesCard({ patientId }: PatientPackagesCardProps) {
         {(!packages || packages.length === 0) ? (
           <div className="text-center py-8 text-muted-foreground">
             <Package className="h-12 w-12 mx-auto mb-2 opacity-20" />
-            <p>Nenhum pacote ativo</p>
+            <p>Nenhum pacote ou guia ativa</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {packages.map(pkg => (
-              <PackageItem key={pkg.id} pkg={pkg} />
-            ))}
+            {/* Guias de Convênio */}
+            {healthPlanAuths.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-emerald-700 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Guias de Convênio
+                </h4>
+                {healthPlanAuths.map(pkg => (
+                  <HealthPlanAuthItem key={pkg.id} pkg={pkg} />
+                ))}
+              </div>
+            )}
+
+            {/* Pacotes Regulares */}
+            {regularPackages.length > 0 && (
+              <div className="space-y-3">
+                {healthPlanAuths.length > 0 && (
+                  <h4 className="text-sm font-medium text-blue-700 flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Pacotes de Sessões
+                  </h4>
+                )}
+                {regularPackages.map(pkg => (
+                  <PackageItem key={pkg.id} pkg={pkg} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -116,6 +145,91 @@ export function PatientPackagesCard({ patientId }: PatientPackagesCardProps) {
         availablePackages={availablePackages || []}
       />
     </>
+  );
+}
+
+// Componente para Guia de Convênio
+function HealthPlanAuthItem({ pkg }: { pkg: any }) {
+  const remaining = pkg.total_sessions - (pkg.used_sessions || 0);
+  const progress = ((pkg.used_sessions || 0) / pkg.total_sessions) * 100;
+  const isExpiringSoon = pkg.expiration_date && 
+    new Date(pkg.expiration_date) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const statusConfig: Record<string, { label: string; color: string }> = {
+    active: { label: 'Ativa', color: 'bg-emerald-100 text-emerald-800' },
+    expired: { label: 'Expirada', color: 'bg-red-100 text-red-800' },
+    completed: { label: 'Concluída', color: 'bg-gray-100 text-gray-800' },
+  };
+
+  const status = statusConfig[pkg.status] || statusConfig.active;
+
+  return (
+    <div className="border-2 border-emerald-200 rounded-lg p-4 space-y-3 bg-emerald-50/50">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Hash className="h-4 w-4 text-emerald-600" />
+            <h4 className="font-medium font-mono text-emerald-800">
+              {pkg.authorization_code || 'Guia'}
+            </h4>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-700">
+            <Badge variant="outline" className="border-emerald-300 bg-emerald-100 text-emerald-700">
+              {pkg.health_plan || 'Convênio'}
+            </Badge>
+            {pkg.therapist && (
+              <span className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                {pkg.therapist}
+              </span>
+            )}
+          </div>
+        </div>
+        <Badge className={status.color}>{status.label}</Badge>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-between text-sm">
+          <span className="text-emerald-700">
+            {pkg.used_sessions || 0} de {pkg.total_sessions} sessões usadas
+          </span>
+          <span className="font-medium text-emerald-800">
+            {remaining} restantes
+          </span>
+        </div>
+        <Progress value={progress} className="h-2 bg-emerald-200" />
+      </div>
+
+      {pkg.expiration_date && (
+        <div className={`flex items-center gap-2 text-sm ${
+          isExpiringSoon ? 'text-orange-600' : 'text-emerald-600'
+        }`}>
+          <Calendar className="h-4 w-4" />
+          <span>
+            Válido até {format(parseISO(pkg.expiration_date), 'dd/MM/yyyy')}
+          </span>
+          {isExpiringSoon && <AlertCircle className="h-4 w-4" />}
+        </div>
+      )}
+
+      {remaining > 0 && remaining <= 3 && pkg.status === 'active' && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-600">
+            Guia acabando! Restam apenas {remaining} sessões.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {pkg.status === 'completed' && (
+        <Alert className="border-gray-200 bg-gray-50">
+          <AlertCircle className="h-4 w-4 text-gray-600" />
+          <AlertDescription className="text-gray-600">
+            Guia concluída. Solicite nova autorização ao paciente.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
   );
 }
 

@@ -43,16 +43,20 @@ import {
   Link,
   Plus,
   TrendingUp,
+  ClipboardList,
+  Hash,
 } from "lucide-react";
 import { format, parseISO, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { PatientCreditsCard } from "./PatientCreditsCard";
 import { PatientPackagesCard } from "./PatientPackagesCard";
+import { HealthPlanAuthorizationModal } from "./HealthPlanAuthorizationModal";
 
 interface AttendanceControlTabProps {
   patientId: string;
   patientName: string;
+  healthPlan?: string;
 }
 
 interface AttendanceSession {
@@ -318,13 +322,17 @@ function RegisterPaymentModal({
   );
 }
 
-export function AttendanceControlTab({ patientId, patientName }: AttendanceControlTabProps) {
+export function AttendanceControlTab({ patientId, patientName, healthPlan }: AttendanceControlTabProps) {
   const queryClient = useQueryClient();
   const [payingSessionId, setPayingSessionId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [batchPaymentOpen, setBatchPaymentOpen] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showHealthPlanModal, setShowHealthPlanModal] = useState(false);
+
+  // Verificar se paciente é de convênio
+  const isHealthPlanPatient = healthPlan && healthPlan !== "Particular";
   const [batchPaymentForm, setBatchPaymentForm] = useState({
     amount: "",
     method: "pix",
@@ -917,6 +925,11 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
     );
   }
 
+  // Buscar guia de convênio ativa (is_health_plan_authorization = true)
+  const activeHealthPlanAuth = allPackages.find(
+    (p) => p.is_health_plan_authorization && p.status === "active"
+  );
+
   return (
     <div className="space-y-6">
       {/* SEÇÃO FINANCEIRA NO TOPO */}
@@ -927,7 +940,88 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
         <PatientPackagesCard patientId={patientId} />
       </div>
 
-      {/* Resumo Financeiro + Botão Registrar Pagamento */}
+      {/* Card de Guia de Convênio Ativa (se houver) */}
+      {activeHealthPlanAuth && (
+        <Card className="border-2 border-emerald-400 bg-gradient-to-r from-emerald-50 to-teal-50">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-emerald-100 rounded-full">
+                  <ClipboardList className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-lg font-semibold text-emerald-800">
+                      Guia Ativa: {activeHealthPlanAuth.authorization_code}
+                    </h3>
+                    <Badge className="bg-emerald-100 text-emerald-700">
+                      {activeHealthPlanAuth.health_plan}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-emerald-700">
+                    <span className="flex items-center gap-1">
+                      <Hash className="h-4 w-4" />
+                      {activeHealthPlanAuth.used_sessions || 0} de {activeHealthPlanAuth.total_sessions} sessões
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Válido até {activeHealthPlanAuth.expiration_date 
+                        ? format(parseISO(activeHealthPlanAuth.expiration_date), "dd/MM/yyyy")
+                        : "N/A"}
+                    </span>
+                    {activeHealthPlanAuth.therapist && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-4 w-4" />
+                          {activeHealthPlanAuth.therapist}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <p className="text-3xl font-bold text-emerald-700">
+                  {activeHealthPlanAuth.total_sessions - (activeHealthPlanAuth.used_sessions || 0)}
+                </p>
+                <p className="text-sm text-emerald-600">restantes</p>
+              </div>
+            </div>
+
+            {/* Barra de progresso */}
+            <div className="mt-4 space-y-2">
+              <Progress 
+                value={((activeHealthPlanAuth.used_sessions || 0) / activeHealthPlanAuth.total_sessions) * 100} 
+                className="h-3 bg-emerald-200"
+              />
+              {activeHealthPlanAuth.total_sessions - (activeHealthPlanAuth.used_sessions || 0) <= 3 && (
+                <Alert className="border-orange-300 bg-orange-50">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-700">
+                    ⚠️ Guia acabando! Solicite nova autorização ao paciente.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Alerta de Guia Esgotada (se paciente é de convênio e não tem guia ativa) */}
+      {isHealthPlanPatient && !activeHealthPlanAuth && (
+        <Alert className="border-2 border-red-400 bg-red-50">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          <AlertDescription className="text-red-700 font-medium">
+            ❌ Paciente de convênio ({healthPlan}) sem guia ativa! 
+            Registre uma nova guia para permitir marcação de presença.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Resumo Financeiro + Botões de Ação */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -977,19 +1071,43 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
           </CardContent>
         </Card>
 
-        {/* Botão Registrar Pagamento (Estilo Caixa) */}
-        <Card className="border-2 border-dashed border-success/50 bg-success/5 hover:bg-success/10 transition-colors cursor-pointer"
-              onClick={() => setShowPaymentModal(true)}>
-          <CardContent className="p-4 flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="p-3 bg-success/20 rounded-full mx-auto mb-2 w-fit">
-                <Plus className="h-6 w-6 text-success" />
-              </div>
-              <p className="font-semibold text-success">Registrar Pagamento</p>
-              <p className="text-xs text-muted-foreground">Adicionar entrada</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Botões de Ação */}
+        <div className="flex flex-col gap-2">
+          {/* Botão Registrar Pagamento (Estilo Caixa) */}
+          {!isHealthPlanPatient && (
+            <Card 
+              className="border-2 border-dashed border-success/50 bg-success/5 hover:bg-success/10 transition-colors cursor-pointer flex-1"
+              onClick={() => setShowPaymentModal(true)}
+            >
+              <CardContent className="p-4 flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="p-2 bg-success/20 rounded-full mx-auto mb-1 w-fit">
+                    <Plus className="h-5 w-5 text-success" />
+                  </div>
+                  <p className="font-semibold text-success text-sm">Registrar Pagamento</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Botão Registrar Guia de Convênio (apenas para pacientes de convênio) */}
+          {isHealthPlanPatient && (
+            <Card 
+              className="border-2 border-dashed border-emerald-500/50 bg-emerald-50/50 hover:bg-emerald-100/50 transition-colors cursor-pointer flex-1"
+              onClick={() => setShowHealthPlanModal(true)}
+            >
+              <CardContent className="p-4 flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="p-2 bg-emerald-100 rounded-full mx-auto mb-1 w-fit">
+                    <ClipboardList className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <p className="font-semibold text-emerald-700 text-sm">Registrar Guia</p>
+                  <p className="text-xs text-emerald-600">{healthPlan}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Histórico de Pagamentos */}
@@ -1968,6 +2086,15 @@ export function AttendanceControlTab({ patientId, patientName }: AttendanceContr
         patientId={patientId}
         patientName={patientName}
         defaultTherapist={defaultTherapist}
+      />
+
+      {/* Modal de Guia de Convênio */}
+      <HealthPlanAuthorizationModal
+        open={showHealthPlanModal}
+        onOpenChange={setShowHealthPlanModal}
+        patientId={patientId}
+        patientName={patientName}
+        healthPlan={healthPlan}
       />
     </div>
   );
