@@ -13,6 +13,7 @@ export interface Appointment {
   therapist: string;
   room?: string;
   status: string;
+  attendance_status?: string; // 'scheduled' | 'present' | 'absent' | 'cancelled'
   is_first_session: boolean;
   repeat_weekly: boolean;
   repeat_until?: string;
