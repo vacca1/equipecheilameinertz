@@ -61,6 +61,7 @@ const patientSchema = z.object({
   number: z.string().optional(),
   complement: z.string().optional(),
   insurance: z.string().optional(),
+  healthPlanNotes: z.string().optional(),
   discount: z.string().optional(),
   discountPercentage: z.string()
     .optional()
@@ -192,6 +193,7 @@ export function PatientFormModal({
         
         // Convênio e Desconto
         insurance: patient.health_plan || "",
+        healthPlanNotes: patient.health_plan_notes || "",
         discount: patient.discount || "",
         discountPercentage: patient.discount_percentage?.toString() || "",
         
@@ -323,6 +325,7 @@ export function PatientFormModal({
       
       // Convênio e Desconto
       health_plan: data.insurance || undefined,
+      health_plan_notes: data.healthPlanNotes || undefined,
       discount: data.discount || undefined,
       discount_percentage: data.discountPercentage ? parseInt(data.discountPercentage) : undefined,
       
@@ -586,6 +589,27 @@ export function PatientFormModal({
                             <SelectItem value="AFMU">AFMU</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="healthPlanNotes"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Observações do Convênio</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Senha do convênio, número de carteira, autorizações, etc."
+                            rows={2}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Anote informações importantes do convênio
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
