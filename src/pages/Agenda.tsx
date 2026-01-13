@@ -452,8 +452,8 @@ const Agenda = () => {
                         return (
                           <td 
                             key={day.toISOString()} 
-                            className="p-1 border-r border-border last:border-r-0 relative h-16"
-                            style={{ height: '64px' }}
+                            className="p-1 border-r border-border last:border-r-0 relative"
+                            style={{ height: '80px' }}
                           >
                             {appointmentsAtTime.length > 0 ? (
                               <Tooltip>
@@ -461,7 +461,7 @@ const Agenda = () => {
                                   <button
                                     onClick={() => handleCellClick(day, time)}
                                     style={{
-                                      height: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 64 - 8}px`,
+                                      height: `${getHeightMultiplier(appointmentsAtTime[0].duration) * 80 - 8}px`,
                                     }}
                                     className={cn(
                                       "absolute inset-x-1 top-1 z-10 rounded-2xl text-left text-xs transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 border-0 overflow-hidden group",
@@ -472,11 +472,11 @@ const Agenda = () => {
                                   >
                                     {appointmentsAtTime.length === 1 ? (
                                       // Single patient layout - Premium card style
-                                      <div className="p-3 h-full flex flex-col relative">
+                                      <div className="p-2.5 h-full flex flex-col relative">
                                         {/* Status indicator dot */}
-                                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                                        <div className="absolute top-2 right-2">
                                           <div className={cn(
-                                            "w-2 h-2 rounded-full",
+                                            "w-2.5 h-2.5 rounded-full shadow-sm",
                                             appointmentsAtTime[0].attendanceStatus === "present" && "bg-emerald-500",
                                             appointmentsAtTime[0].attendanceStatus === "absent" && "bg-orange-500",
                                             appointmentsAtTime[0].status === "confirmed" && !appointmentsAtTime[0].attendanceStatus && "bg-success",
@@ -485,23 +485,23 @@ const Agenda = () => {
                                           )} />
                                         </div>
                                         
-                                        {/* Patient name - larger and clearer */}
-                                        <div className="flex-1 min-w-0 pr-4">
-                                          <span className="font-semibold text-[12px] leading-tight line-clamp-2 text-foreground">
+                                        {/* Patient name - full display */}
+                                        <div className="flex-1 min-w-0 pr-5">
+                                          <span className="font-semibold text-[13px] leading-snug text-foreground block">
                                             {appointmentsAtTime[0].patientName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
                                           </span>
                                         </div>
                                         
                                         {/* Bottom info row */}
-                                        <div className="flex items-center justify-between mt-auto pt-1.5 border-t border-black/5">
-                                          <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[60%]">
+                                        <div className="flex items-center justify-between mt-auto pt-1">
+                                          <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[55%]">
                                             {appointmentsAtTime[0].therapist}
                                           </span>
-                                          <div className="flex items-center gap-1.5">
+                                          <div className="flex items-center gap-1">
                                             {appointmentsAtTime[0].notes && (
                                               <MessageSquare className="w-3 h-3 text-primary opacity-70" />
                                             )}
-                                            <span className="text-[9px] font-medium text-muted-foreground bg-black/5 px-1.5 py-0.5 rounded-md">
+                                            <span className="text-[9px] font-medium text-muted-foreground/80 bg-black/5 px-1.5 py-0.5 rounded">
                                               {appointmentsAtTime[0].duration}
                                             </span>
                                           </div>
