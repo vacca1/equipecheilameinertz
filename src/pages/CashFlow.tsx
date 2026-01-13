@@ -250,90 +250,90 @@ export default function CashFlow() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-success/10 rounded-xl">
-              <TrendingUp className="w-5 h-5 text-success" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <div className="p-2 sm:p-2.5 bg-success/10 rounded-xl">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
             </div>
-            <span className="metric-label">Total de Entradas</span>
+            <span className="metric-label text-[10px] sm:text-xs">Entradas</span>
           </div>
-          <div className="metric-value text-success">
-            R$ {totalIncome.toFixed(2)}
+          <div className="text-lg sm:text-2xl font-bold text-success">
+            R$ {totalIncome.toFixed(0)}
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-destructive/10 rounded-xl">
-              <TrendingDown className="w-5 h-5 text-destructive" />
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <div className="p-2 sm:p-2.5 bg-destructive/10 rounded-xl">
+              <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
             </div>
-            <span className="metric-label">Total de Saídas</span>
+            <span className="metric-label text-[10px] sm:text-xs">Saídas</span>
           </div>
-          <div className="metric-value text-destructive">
-            R$ {totalExpenses.toFixed(2)}
+          <div className="text-lg sm:text-2xl font-bold text-destructive">
+            R$ {totalExpenses.toFixed(0)}
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <DollarSign className="w-5 h-5 text-primary" />
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <div className="p-2 sm:p-2.5 bg-primary/10 rounded-xl">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
-            <span className="metric-label">Saldo do Período</span>
+            <span className="metric-label text-[10px] sm:text-xs">Saldo</span>
           </div>
-          <div className={cn("metric-value", balance >= 0 ? "text-success" : "text-destructive")}>
-            R$ {balance.toFixed(2)}
+          <div className={cn("text-lg sm:text-2xl font-bold", balance >= 0 ? "text-success" : "text-destructive")}>
+            R$ {balance.toFixed(0)}
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-warning/10 rounded-xl">
-              <Clock className="w-5 h-5 text-warning" />
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <div className="p-2 sm:p-2.5 bg-warning/10 rounded-xl">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
             </div>
-            <span className="metric-label">Pagamentos Pendentes</span>
+            <span className="metric-label text-[10px] sm:text-xs">Pendentes</span>
           </div>
-          <div className="metric-value text-warning">
-            R$ {pendingPayments.toFixed(2)}
+          <div className="text-lg sm:text-2xl font-bold text-warning">
+            R$ {pendingPayments.toFixed(0)}
           </div>
         </Card>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
-        <Button onClick={() => setIncomeModalOpen(true)} className="shadow-sm">
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar Entrada
+      <div className="flex gap-2 sm:gap-3 flex-wrap">
+        <Button onClick={() => setIncomeModalOpen(true)} className="shadow-sm flex-1 sm:flex-none">
+          <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Adicionar </span>Entrada
         </Button>
-        <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setExpenseModalOpen(true)}>
-          <Minus className="w-4 h-4 mr-2" />
-          Adicionar Saída
+        <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 flex-1 sm:flex-none" onClick={() => setExpenseModalOpen(true)}>
+          <Minus className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Adicionar </span>Saída
         </Button>
       </div>
 
       {/* Tables */}
       <Tabs defaultValue="income" className="w-full">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="income" className="flex-1 sm:flex-none">
+        <TabsList className="w-full flex overflow-x-auto scrollbar-hide">
+          <TabsTrigger value="income" className="flex-1 min-w-[80px] whitespace-nowrap text-xs sm:text-sm">
             Entradas
           </TabsTrigger>
-          <TabsTrigger value="expenses" className="flex-1 sm:flex-none">
+          <TabsTrigger value="expenses" className="flex-1 min-w-[80px] whitespace-nowrap text-xs sm:text-sm">
             Saídas
           </TabsTrigger>
-          <TabsTrigger value="therapists" className="flex-1 sm:flex-none">
-            <span className="hidden sm:inline">Fechamento por Fisioterapeuta</span>
-            <span className="sm:hidden">Fechamento</span>
+          <TabsTrigger value="therapists" className="flex-1 min-w-[80px] whitespace-nowrap text-xs sm:text-sm">
+            <span className="hidden sm:inline">Fechamento</span>
+            <span className="sm:hidden">Fisios</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="income" className="mt-6 space-y-6">
+        <TabsContent value="income" className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
           {/* Filters */}
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             <Select value={filterTherapist} onValueChange={setFilterTherapist}>
-              <SelectTrigger className="w-[180px] bg-card">
-                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Fisioterapeuta" />
+              <SelectTrigger className="w-full sm:w-[150px] bg-card text-xs sm:text-sm">
+                <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Fisio" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
@@ -344,8 +344,8 @@ export default function CashFlow() {
             </Select>
 
             <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-              <SelectTrigger className="w-[180px] bg-card">
-                <SelectValue placeholder="Forma Pagamento" />
+              <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-[140px] bg-card text-xs sm:text-sm">
+                <SelectValue placeholder="Pagamento" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
@@ -357,7 +357,7 @@ export default function CashFlow() {
             </Select>
 
             <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
-              <SelectTrigger className="w-[180px] bg-card">
+              <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-[120px] bg-card text-xs sm:text-sm">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -368,8 +368,8 @@ export default function CashFlow() {
             </Select>
           </div>
 
-          {/* Income Table */}
-          <Card className="overflow-hidden">
+          {/* Income Table - Desktop */}
+          <Card className="overflow-hidden hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -447,14 +447,64 @@ export default function CashFlow() {
               </TableBody>
             </Table>
           </Card>
+
+          {/* Income Cards - Mobile */}
+          <div className="md:hidden space-y-3">
+            {filteredIncomes.map((income) => (
+              <Card key={income.id} className="p-4 active:scale-[0.98] transition-transform">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{income.patient_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(income.date), "dd/MM/yyyy")} • {income.therapist}
+                    </p>
+                  </div>
+                  <span className="text-base font-bold text-success ml-2">
+                    R$ {Number(income.value).toFixed(0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">{income.payment_method}</Badge>
+                    {income.payment_status === "received" ? (
+                      <Badge className="bg-success text-xs">Pago</Badge>
+                    ) : (
+                      <Badge variant="warning" className="text-xs">Pendente</Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => {
+                        setSelectedIncome(income);
+                        setIncomeModalOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setDeleteIncomeId(income.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
-        <TabsContent value="expenses" className="mt-6 space-y-4">
+        <TabsContent value="expenses" className="mt-4 sm:mt-6 space-y-4">
           {/* Filtros */}
           <div className="flex gap-2">
             <Select value={filterExpenseCategory} onValueChange={setFilterExpenseCategory}>
-              <SelectTrigger className="w-[220px]">
-                <Filter className="h-4 w-4 mr-2" />
+              <SelectTrigger className="w-full sm:w-[220px] text-xs sm:text-sm">
+                <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -466,8 +516,8 @@ export default function CashFlow() {
             </Select>
           </div>
 
-          {/* Tabela de Saídas */}
-          <div className="border rounded-lg">
+          {/* Tabela de Saídas - Desktop */}
+          <div className="border rounded-lg hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -516,6 +566,51 @@ export default function CashFlow() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Expense Cards - Mobile */}
+          <div className="md:hidden space-y-3">
+            {filteredExpenses.map((expense) => (
+              <Card key={expense.id} className="p-4 active:scale-[0.98] transition-transform">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{expense.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(expense.date), "dd/MM/yyyy")} • {expense.category}
+                    </p>
+                  </div>
+                  <span className="text-base font-bold text-destructive ml-2">
+                    R$ {Number(expense.value).toFixed(0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <Badge variant="outline" className="text-xs">
+                    {expense.therapist || expense.responsible || "Sem vínculo"}
+                  </Badge>
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => {
+                        setSelectedExpense(expense);
+                        setExpenseModalOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setDeleteExpenseId(expense.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         </TabsContent>
 

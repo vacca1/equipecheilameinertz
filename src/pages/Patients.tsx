@@ -145,9 +145,12 @@ export default function Patients() {
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row h-full gap-6">
+      <div className="flex flex-col lg:flex-row h-full gap-4 lg:gap-6">
         {/* Sidebar - Patient List */}
-        <div className="w-full lg:w-80 flex-shrink-0">
+        <div className={cn(
+          "w-full lg:w-80 flex-shrink-0",
+          selectedPatient && "hidden lg:block"
+        )}>
           <Card className="h-full">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-4">
@@ -278,7 +281,16 @@ export default function Patients() {
           {selectedPatient ? (
             <Card>
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
+                {/* Mobile back button */}
+                <Button 
+                  variant="ghost" 
+                  className="mb-2 lg:hidden w-fit -ml-2"
+                  onClick={() => setSelectedPatient(null)}
+                >
+                  <ArrowUpDown className="w-4 h-4 mr-2 rotate-90" />
+                  Voltar para lista
+                </Button>
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <CardTitle className="text-xl">{selectedPatient.name}</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
