@@ -84,42 +84,72 @@
   }
 
   .dark {
-    --background: 220 25% 10%;
-    --foreground: 220 15% 90%;
+    /* Base - Deep navy with subtle warmth */
+    --background: 224 30% 8%;
+    --foreground: 210 20% 92%;
 
-    --card: 220 25% 13%;
-    --card-foreground: 220 15% 90%;
+    /* Cards - Elevated surfaces */
+    --card: 224 30% 11%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 220 25% 13%;
-    --popover-foreground: 220 15% 90%;
+    /* Popover */
+    --popover: 224 30% 12%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 250 65% 65%;
+    /* Primary - Vibrant in dark */
+    --primary: 250 75% 68%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 50% 55%;
+    /* Secondary */
+    --secondary: 250 55% 58%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 25% 18%;
-    --muted-foreground: 220 15% 55%;
+    /* Muted - Subtle backgrounds */
+    --muted: 224 25% 15%;
+    --muted-foreground: 210 15% 60%;
 
-    --accent: 250 60% 60%;
+    /* Accent */
+    --accent: 250 65% 62%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 55%;
+    /* Semantic Colors */
+    --destructive: 0 68% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 25% 20%;
-    --input: 220 25% 20%;
-    --ring: 250 65% 65%;
+    --success: 160 55% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 35 85% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders - Subtle definition */
+    --border: 224 25% 18%;
+    --input: 224 25% 16%;
+    --ring: 250 75% 68%;
     
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 220 15% 85%;
-    --sidebar-primary: 250 65% 65%;
+    /* Status colors for agenda - Dark mode */
+    --status-confirmed: 160 40% 18%;
+    --status-pending: 35 50% 18%;
+    --status-blocked: 0 45% 18%;
+    --status-cancelled: 0 45% 16%;
+    --status-free: 224 25% 12%;
+    
+    /* Premium Shadows - Darker */
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
+    --shadow-card-hover: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.5);
+    --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.35);
+    
+    /* Sidebar Premium - Dark */
+    --sidebar-background: 224 30% 8%;
+    --sidebar-foreground: 210 15% 85%;
+    --sidebar-primary: 250 75% 68%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 50% 20%;
-    --sidebar-accent-foreground: 250 60% 75%;
-    --sidebar-border: 220 25% 18%;
-    --sidebar-ring: 250 65% 65%;
+    --sidebar-accent: 250 50% 18%;
+    --sidebar-accent-foreground: 250 65% 78%;
+    --sidebar-border: 224 25% 15%;
+    --sidebar-ring: 250 75% 68%;
   }
 }
 
@@ -132,11 +162,18 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Smooth theme transitions */
+  *, *::before, *::after {
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
 }
 
