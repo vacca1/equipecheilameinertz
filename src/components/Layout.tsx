@@ -84,10 +84,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             sidebarCollapsed ? "flex flex-col items-center" : ""
           )}>
             {/* Theme Toggle */}
-            <div className={cn(
-              "flex",
-              sidebarCollapsed ? "justify-center scale-[0.6] origin-center" : "justify-center"
-            )}>
+            <div className="flex justify-center">
               <SkyToggle />
             </div>
 
