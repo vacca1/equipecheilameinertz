@@ -218,6 +218,15 @@ const Agenda = () => {
     setModalOpen(true);
   };
 
+  // Handler para adicionar 2º paciente (Pilates Dupla)
+  const handleAddSecondPatient = (e: React.MouseEvent, day: Date, time: string) => {
+    e.stopPropagation();
+    setSelectedAppointment(null); // Não é edição, é novo agendamento
+    setSelectedDate(day);
+    setSelectedTime(time);
+    setModalOpen(true);
+  };
+
   // Handle scheduling from waiting list
   const handleScheduleFromWaitingList = (item: typeof waitingList[0]) => {
     // Mark as scheduled and open modal with prefilled data
@@ -507,7 +516,7 @@ const Agenda = () => {
                                     )}
                                   >
                                     {appointmentsAtTime.length === 1 ? (
-                                      // Single patient layout - Premium card style
+                                      // Single patient layout - Premium card style with "+ 2º" button
                                       <div className="p-2.5 h-full flex flex-col relative">
                                         {/* Status indicator dot */}
                                         <div className="absolute top-2 right-2">
@@ -530,7 +539,7 @@ const Agenda = () => {
                                         
                                         {/* Bottom info row */}
                                         <div className="flex items-center justify-between mt-auto pt-1">
-                                          <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[55%]">
+                                          <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[40%]">
                                             {appointmentsAtTime[0].therapist}
                                           </span>
                                           <div className="flex items-center gap-1">
@@ -540,6 +549,14 @@ const Agenda = () => {
                                             <span className="text-[9px] font-medium text-muted-foreground/80 bg-black/5 px-1.5 py-0.5 rounded">
                                               {appointmentsAtTime[0].duration}
                                             </span>
+                                            {/* Botão + 2º Paciente */}
+                                            <button
+                                              onClick={(e) => handleAddSecondPatient(e, day, time)}
+                                              className="ml-1 text-[9px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-1.5 py-0.5 rounded transition-colors"
+                                              title="Adicionar 2º paciente (Pilates Dupla)"
+                                            >
+                                              + 2º
+                                            </button>
                                           </div>
                                         </div>
                                       </div>
@@ -771,7 +788,7 @@ const Agenda = () => {
                                   </div>
                                 </div>
                                 
-                                {/* Bottom row with icons and duration */}
+                                {/* Bottom row with icons, duration and + 2º button */}
                                 <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/5">
                                   <div className="flex items-center gap-2">
                                     {appointmentsAtTime[0].notes && (
@@ -781,9 +798,18 @@ const Agenda = () => {
                                       <FileText className="w-3.5 h-3.5 text-success opacity-70" />
                                     )}
                                   </div>
-                                  <span className="text-[10px] font-medium text-muted-foreground bg-black/5 px-2 py-0.5 rounded-md">
-                                    {appointmentsAtTime[0].duration}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-medium text-muted-foreground bg-black/5 px-2 py-0.5 rounded-md">
+                                      {appointmentsAtTime[0].duration}
+                                    </span>
+                                    {/* Botão + 2º Paciente - Mobile */}
+                                    <button
+                                      onClick={(e) => handleAddSecondPatient(e, day, time)}
+                                      className="text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded-md transition-colors"
+                                    >
+                                      + 2º Paciente
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             ) : (
