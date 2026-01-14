@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye, Plus, AlertTriangle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, MapPin, FileText, Eye, Plus, AlertTriangle, Users } from "lucide-react";
 import { format, addWeeks, differenceInWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -57,6 +57,9 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const [conflictPreview, setConflictPreview] = useState<{ conflicts: string[]; totalWeeks: number } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [roomConflict, setRoomConflict] = useState<string>("");
+  
+  // Estado para modo Pilates Dupla
+  const [showDuplaForm, setShowDuplaForm] = useState(false);
 
   const createAppointment = useCreateAppointment();
   const updateAppointment = useUpdateAppointment();
@@ -65,8 +68,29 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
   const { data: patientsData = [] } = usePatients();
   const { data: allAppointments = [] } = useAppointments();
 
+  // Detectar agendamentos existentes no mesmo slot
+  const existingAtSlot = useMemo(() => {
+    if (!date || !prefilledTime || !prefilledTherapist) return [];
+    const formattedDate = format(date, "yyyy-MM-dd");
+    return allAppointments.filter(
+      (apt) =>
+        apt.therapist === prefilledTherapist &&
+        apt.date === formattedDate &&
+        apt.time === prefilledTime &&
+        apt.status !== "cancelled" &&
+        apt.patient_name !== "Bloqueio"
+    );
+  }, [date, prefilledTime, prefilledTherapist, allAppointments]);
+
+  // Verifica se está em modo de visualização de slot ocupado (não é edição)
+  const isSlotWithOnePatient = !appointment && existingAtSlot.length === 1;
+  const isSlotFull = !appointment && existingAtSlot.length >= 2;
+
   useEffect(() => {
     if (!open) return;
+
+    // Reset do modo dupla quando modal abre
+    setShowDuplaForm(false);
 
     if (appointment) {
       // Edição de agendamento existente
@@ -215,7 +239,7 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       return;
     }
 
-    if (conflicts.length === 1) {
+    if (conflicts.length === 1 && !showDuplaForm) {
       const conflict = conflicts[0];
       const conflictEndTime = (() => {
         const [h, m] = conflict.time.split(':').map(Number);
@@ -240,12 +264,17 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
     // Buscar patient_id do paciente selecionado
     const selectedPatient = patientsData.find(p => p.name === patient);
     
+    // Para modo dupla, usar a duração do primeiro agendamento
+    const finalDuration = showDuplaForm && existingAtSlot.length === 1 
+      ? existingAtSlot[0].duration || 30
+      : parseDuration(duration);
+    
     const appointmentData = {
       patient_id: selectedPatient?.id || undefined,
       patient_name: patient,
       date: format(date, "yyyy-MM-dd"),
       time,
-      duration: parseDuration(duration),
+      duration: finalDuration,
       therapist,
       room: room || undefined,
       status: status as "scheduled" | "confirmed" | "cancelled" | "completed",
@@ -270,6 +299,11 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
       }
     } else {
       createAppointment.mutate(appointmentData);
+      
+      // Toast especial para Pilates dupla
+      if (showDuplaForm) {
+        toast.success("🤸 Pilates dupla agendado com sucesso!");
+      }
     }
     
     onClose();
@@ -304,426 +338,547 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
     onClose();
   };
 
+  // Renderiza card informativo do paciente existente
+  const renderExistingPatientCard = () => {
+    if (!isSlotWithOnePatient) return null;
+    
+    const existingApt = existingAtSlot[0];
+    const durationMin = existingApt.duration || 30;
+    const [h, m] = existingApt.time.split(':').map(Number);
+    const endMin = h * 60 + m + durationMin;
+    const endTime = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+    
+    return (
+      <div className="mb-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-5 h-5 text-primary" />
+          <span className="font-semibold text-primary">Paciente já agendado neste horário</span>
+        </div>
+        <div className="text-sm space-y-1 mb-4">
+          <p className="font-medium">{existingApt.patient_name}</p>
+          <p className="text-muted-foreground">
+            {existingApt.time} - {endTime} ({durationMin}min) • {existingApt.therapist}
+          </p>
+          {existingApt.room && (
+            <p className="text-muted-foreground">{existingApt.room}</p>
+          )}
+        </div>
+        
+        {!showDuplaForm && (
+          <Button 
+            onClick={() => setShowDuplaForm(true)}
+            className="w-full"
+            variant="default"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar 2º Paciente (Pilates Dupla)
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  // Renderiza alerta de slot lotado
+  const renderSlotFullAlert = () => {
+    if (!isSlotFull) return null;
+    
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Horário lotado!</strong>
+          <br />
+          Este horário já possui 2 pacientes agendados (máximo para Pilates dupla).
+          <div className="mt-2 text-xs">
+            {existingAtSlot.map((apt, i) => (
+              <div key={apt.id}>• {apt.patient_name}</div>
+            ))}
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  };
+
+  // Se slot está cheio, mostrar apenas o alerta
+  if (isSlotFull) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-md p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Horário Lotado</DialogTitle>
+          </DialogHeader>
+          {renderSlotFullAlert()}
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose} className="w-full">
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-xl sm:text-2xl">
-            {appointment ? "Editar Agendamento" : "Novo Agendamento"}
+            {appointment 
+              ? "Editar Agendamento" 
+              : showDuplaForm 
+                ? "🤸 Adicionar 2º Paciente (Pilates Dupla)" 
+                : "Novo Agendamento"
+            }
           </DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 sm:gap-6 py-3 sm:py-4">
-          {/* Paciente */}
-          <div className="grid gap-2">
-            <Label className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Paciente *
-            </Label>
-            <div className="flex gap-2">
-              <div className="flex-1 space-y-2">
-                <Input
-                  type="text"
-                  placeholder="🔍 Buscar por nome ou CPF..."
-                  value={patientSearch}
-                  onChange={(e) => setPatientSearch(e.target.value)}
-                />
-                
-                <Select 
-                  value={patient} 
-                  onValueChange={(value) => {
-                    setPatient(value);
-                    const patientData = patientsData.find(p => p.name === value);
-                    setSelectedPatientData(patientData || null);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o paciente" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {patientsData
-                      .filter((p) => 
-                        p.status === "active" && 
-                        (p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-                         p.cpf?.includes(patientSearch))
-                      )
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((p) => (
-                        <SelectItem key={p.id} value={p.name}>
-                          <div className="flex flex-col">
-                            <span>{p.name}</span>
-                            {p.cpf && (
-                              <span className="text-xs text-muted-foreground">
-                                CPF: {p.cpf}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setShowAddPatientModal(true)}
-                title="Cadastrar novo paciente"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setShowPatientDetails(true)}
-                disabled={!patient}
-                title="Ver ficha completa do paciente"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Data */}
-            <div className="grid gap-2">
-              <Label className="flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4" />
-                Data *
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Horário com indicador de conflito */}
-            <div className="grid gap-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Horário *
-              </Label>
-              <Select value={time} onValueChange={setTime}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar horário" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px]">
-                  {timeSlots.map((slot) => {
-                    // Verificar se o slot está ocupado pela duração de uma sessão anterior
-                    const formattedDate = date ? format(date, "yyyy-MM-dd") : "";
-                    const isOccupied = therapist && allAppointments.some((apt) => {
-                      if (apt.therapist !== therapist || apt.date !== formattedDate || apt.status === 'cancelled') return false;
-                      if (apt.id === appointment?.id) return false;
-                      
-                      const aptDuration = apt.duration || 60;
-                      const [aptH, aptM] = apt.time.split(':').map(Number);
-                      const [slotH, slotM] = slot.split(':').map(Number);
-                      const aptStartMin = aptH * 60 + aptM;
-                      const aptEndMin = aptStartMin + aptDuration;
-                      const slotMin = slotH * 60 + slotM;
-                      
-                      return slotMin >= aptStartMin && slotMin < aptEndMin;
-                    });
-                    
-                    const occupyingApt = therapist && allAppointments.find((apt) => {
-                      if (apt.therapist !== therapist || apt.date !== formattedDate || apt.status === 'cancelled') return false;
-                      if (apt.id === appointment?.id) return false;
-                      
-                      const aptDuration = apt.duration || 60;
-                      const [aptH, aptM] = apt.time.split(':').map(Number);
-                      const [slotH, slotM] = slot.split(':').map(Number);
-                      const aptStartMin = aptH * 60 + aptM;
-                      const aptEndMin = aptStartMin + aptDuration;
-                      const slotMin = slotH * 60 + slotM;
-                      
-                      return slotMin >= aptStartMin && slotMin < aptEndMin;
-                    });
-                    
-                    return (
-                      <SelectItem 
-                        key={slot} 
-                        value={slot}
-                        className={cn(isOccupied && "text-warning")}
-                      >
-                        <span className="flex items-center gap-2">
-                          {slot}
-                          {isOccupied && occupyingApt && (
-                            <span className="text-xs text-warning">
-                              ⚠️ {occupyingApt.patient_name.split(' ')[0]} até {(() => {
-                                const [h, m] = occupyingApt.time.split(':').map(Number);
-                                const endMin = h * 60 + m + (occupyingApt.duration || 60);
-                                return `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
-                              })()}
-                            </span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Duração */}
-            <div className="grid gap-2">
-              <Label>Duração</Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {durations.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Fisioterapeuta */}
-            <div className="grid gap-2">
-              <Label>Fisioterapeuta *</Label>
-              <Select value={therapist} onValueChange={setTherapist}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar fisioterapeuta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {therapists.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Sala */}
-            <div className="grid gap-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Sala (opcional)
-              </Label>
-              <Select value={room} onValueChange={setRoom}>
-                <SelectTrigger className={cn(roomConflict && "border-destructive")}>
-                  <SelectValue placeholder="Selecionar sala" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rooms.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Alerta de conflito de sala */}
-              {roomConflict && (
-                <Alert variant="destructive" className="py-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    {roomConflict}
-                    <br />
-                    <span className="opacity-80">Escolha outro horário ou outra sala</span>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-
-            {/* Status */}
-            <div className="grid gap-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="confirmed">✓ Confirmado</SelectItem>
-                  <SelectItem value="pending">🕐 A confirmar</SelectItem>
-                  <SelectItem value="blocked">🔒 Bloqueado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Observações */}
-          <div className="grid gap-2">
-            <Label className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Observação rápida (até 100 caracteres)
-            </Label>
-            <Textarea
-              placeholder="Ex: Trazer exames anteriores, primeira consulta, etc."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value.slice(0, 100))}
-              maxLength={100}
-              className="resize-none"
-            />
-            <div className="text-xs text-muted-foreground text-right">
-              {notes.length}/100
-            </div>
-          </div>
-
-          {/* Primeira sessão */}
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-            <div className="space-y-0.5">
-              <Label className="text-base">Primeira sessão?</Label>
-              <div className="text-sm text-muted-foreground">
-                Marca como consulta de avaliação
-              </div>
-            </div>
-            <Switch checked={isFirstSession} onCheckedChange={setIsFirstSession} />
-          </div>
-
-          {/* Repetir semanalmente */}
-          <div className="space-y-3 p-4 rounded-lg bg-muted/50">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-base">Repetir semanalmente</Label>
-                <div className="text-sm text-muted-foreground">
-                  Agendar para as próximas semanas
-                </div>
-              </div>
-              <Switch 
-                checked={repeatWeekly} 
-                onCheckedChange={(checked) => {
-            setRepeatWeekly(checked);
-                  setConflictPreview(null);
-                  // Auto-preencher com 4 semanas a partir da data selecionada
-                  if (checked && date && !repeatUntil) {
-                    setRepeatUntil(addWeeks(date, 4));
-                  }
-                }}
-              />
-            </div>
-
-            {repeatWeekly && (
-              <div className="grid gap-2 pt-2">
-                <Label className="flex items-center gap-1">
-                  Repetir até quando? <span className="text-destructive">*</span>
+          {/* Card do paciente existente (modo dupla) */}
+          {renderExistingPatientCard()}
+          
+          {/* Formulário principal - oculto até clicar em "Adicionar 2º" quando slot tem 1 paciente */}
+          {(!isSlotWithOnePatient || showDuplaForm) && (
+            <>
+              {/* Paciente */}
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {showDuplaForm ? "2º Paciente *" : "Paciente *"}
                 </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !repeatUntil && "text-muted-foreground border-destructive"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {repeatUntil ? format(repeatUntil, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data final"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={repeatUntil}
-                      onSelect={setRepeatUntil}
-                      initialFocus
-                      className="pointer-events-auto"
-                      locale={ptBR}
-                      disabled={(d) => d < (date || new Date())}
+                <div className="flex gap-2">
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      type="text"
+                      placeholder="🔍 Buscar por nome ou CPF..."
+                      value={patientSearch}
+                      onChange={(e) => setPatientSearch(e.target.value)}
                     />
-                  </PopoverContent>
-                </Popover>
-                
-                {/* Preview de quantos agendamentos serão criados */}
-                {repeatUntil && date && (
-                  <div className="space-y-2">
-                    <div className="text-sm text-primary font-medium bg-primary/10 p-2 rounded">
-                      📅 Serão criados {differenceInWeeks(repeatUntil, date) + 1} agendamentos 
-                      (de {format(date, "dd/MM", { locale: ptBR })} até {format(repeatUntil, "dd/MM/yyyy", { locale: ptBR })})
-                    </div>
                     
-                    {/* Botão para verificar conflitos */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      disabled={!therapist || isValidating}
-                      onClick={async () => {
-                        if (!therapist || !date || !repeatUntil) return;
-                        
-                        setIsValidating(true);
-                        try {
-                          const result = await validateWeeklyRepetition({
-                            date: format(date, "yyyy-MM-dd"),
-                            repeat_until: format(repeatUntil, "yyyy-MM-dd"),
-                            therapist,
-                            time,
-                            duration: parseDuration(duration),
-                            patient_name: patient
-                          });
-                          setConflictPreview(result);
-                        } catch (error) {
-                          console.error("Erro ao validar:", error);
-                        } finally {
-                          setIsValidating(false);
-                        }
+                    <Select 
+                      value={patient} 
+                      onValueChange={(value) => {
+                        setPatient(value);
+                        const patientData = patientsData.find(p => p.name === value);
+                        setSelectedPatientData(patientData || null);
                       }}
                     >
-                      {isValidating ? "Verificando..." : "🔍 Verificar conflitos antes de salvar"}
-                    </Button>
-                    
-                    {/* Resultado da verificação */}
-                    {conflictPreview && (
-                      conflictPreview.conflicts.length > 0 ? (
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>
-                            <div className="font-medium">
-                              {conflictPreview.conflicts.length} de {conflictPreview.totalWeeks} semanas têm conflito:
-                            </div>
-                            <div className="text-xs mt-1">
-                              {conflictPreview.conflicts.join(", ")}
-                            </div>
-                            <div className="text-xs mt-1 opacity-80">
-                              Essas datas serão ignoradas ao salvar.
-                            </div>
-                          </AlertDescription>
-                        </Alert>
-                      ) : (
-                        <Alert className="border-success bg-success/10">
-                          <AlertDescription className="text-success">
-                            ✓ Nenhum conflito encontrado! Todas as {conflictPreview.totalWeeks} semanas estão livres.
-                          </AlertDescription>
-                        </Alert>
-                      )
-                    )}
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o paciente" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {patientsData
+                          .filter((p) => 
+                            p.status === "active" && 
+                            (p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                             p.cpf?.includes(patientSearch)) &&
+                            // No modo dupla, excluir o paciente que já está agendado
+                            (!showDuplaForm || p.name !== existingAtSlot[0]?.patient_name)
+                          )
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((p) => (
+                            <SelectItem key={p.id} value={p.name}>
+                              <div className="flex flex-col">
+                                <span>{p.name}</span>
+                                {p.cpf && (
+                                  <span className="text-xs text-muted-foreground">
+                                    CPF: {p.cpf}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowAddPatientModal(true)}
+                    title="Cadastrar novo paciente"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowPatientDetails(true)}
+                    disabled={!patient}
+                    title="Ver ficha completa do paciente"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Em modo dupla, data/hora/terapeuta são fixos */}
+              {showDuplaForm ? (
+                <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-muted-foreground text-xs">Data</div>
+                      <div className="font-medium">{date ? format(date, "dd/MM/yyyy") : "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground text-xs">Horário</div>
+                      <div className="font-medium">{time}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground text-xs">Fisioterapeuta</div>
+                      <div className="font-medium">{therapist}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Data */}
+                    <div className="grid gap-2">
+                      <Label className="flex items-center gap-2">
+                        <CalendarIcon className="w-4 h-4" />
+                        Data *
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "justify-start text-left font-normal",
+                              !date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={setDate}
+                            initialFocus
+                            className="pointer-events-auto"
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Horário com indicador de conflito */}
+                    <div className="grid gap-2">
+                      <Label className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Horário *
+                      </Label>
+                      <Select value={time} onValueChange={setTime}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar horário" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[200px]">
+                          {timeSlots.map((slot) => {
+                            // Verificar se o slot está ocupado pela duração de uma sessão anterior
+                            const formattedDate = date ? format(date, "yyyy-MM-dd") : "";
+                            const isOccupied = therapist && allAppointments.some((apt) => {
+                              if (apt.therapist !== therapist || apt.date !== formattedDate || apt.status === 'cancelled') return false;
+                              if (apt.id === appointment?.id) return false;
+                              
+                              const aptDuration = apt.duration || 60;
+                              const [aptH, aptM] = apt.time.split(':').map(Number);
+                              const [slotH, slotM] = slot.split(':').map(Number);
+                              const aptStartMin = aptH * 60 + aptM;
+                              const aptEndMin = aptStartMin + aptDuration;
+                              const slotMin = slotH * 60 + slotM;
+                              
+                              return slotMin >= aptStartMin && slotMin < aptEndMin;
+                            });
+                            
+                            const occupyingApt = therapist && allAppointments.find((apt) => {
+                              if (apt.therapist !== therapist || apt.date !== formattedDate || apt.status === 'cancelled') return false;
+                              if (apt.id === appointment?.id) return false;
+                              
+                              const aptDuration = apt.duration || 60;
+                              const [aptH, aptM] = apt.time.split(':').map(Number);
+                              const [slotH, slotM] = slot.split(':').map(Number);
+                              const aptStartMin = aptH * 60 + aptM;
+                              const aptEndMin = aptStartMin + aptDuration;
+                              const slotMin = slotH * 60 + slotM;
+                              
+                              return slotMin >= aptStartMin && slotMin < aptEndMin;
+                            });
+                            
+                            return (
+                              <SelectItem 
+                                key={slot} 
+                                value={slot}
+                                className={cn(isOccupied && "text-warning")}
+                              >
+                                <span className="flex items-center gap-2">
+                                  {slot}
+                                  {isOccupied && occupyingApt && (
+                                    <span className="text-xs text-warning">
+                                      ⚠️ {occupyingApt.patient_name.split(' ')[0]} até {(() => {
+                                        const [h, m] = occupyingApt.time.split(':').map(Number);
+                                        const endMin = h * 60 + m + (occupyingApt.duration || 60);
+                                        return `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+                                      })()}
+                                    </span>
+                                  )}
+                                </span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Duração */}
+                    <div className="grid gap-2">
+                      <Label>Duração</Label>
+                      <Select value={duration} onValueChange={setDuration}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {durations.map((d) => (
+                            <SelectItem key={d} value={d}>
+                              {d}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Fisioterapeuta */}
+                    <div className="grid gap-2">
+                      <Label>Fisioterapeuta *</Label>
+                      <Select value={therapist} onValueChange={setTherapist}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar fisioterapeuta" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {therapists.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Sala */}
+                <div className="grid gap-2">
+                  <Label className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Sala (opcional)
+                  </Label>
+                  <Select value={room} onValueChange={setRoom}>
+                    <SelectTrigger className={cn(roomConflict && "border-destructive")}>
+                      <SelectValue placeholder="Selecionar sala" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rooms.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Alerta de conflito de sala */}
+                  {roomConflict && (
+                    <Alert variant="destructive" className="py-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        {roomConflict}
+                        <br />
+                        <span className="opacity-80">Escolha outro horário ou outra sala</span>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+
+                {/* Status */}
+                <div className="grid gap-2">
+                  <Label>Status</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="confirmed">✓ Confirmado</SelectItem>
+                      <SelectItem value="pending">🕐 A confirmar</SelectItem>
+                      <SelectItem value="blocked">🔒 Bloqueado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Observações */}
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Observação rápida (até 100 caracteres)
+                </Label>
+                <Textarea
+                  placeholder="Ex: Trazer exames anteriores, primeira consulta, etc."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value.slice(0, 100))}
+                  maxLength={100}
+                  className="resize-none"
+                />
+                <div className="text-xs text-muted-foreground text-right">
+                  {notes.length}/100
+                </div>
+              </div>
+
+              {/* Primeira sessão - oculto em modo dupla */}
+              {!showDuplaForm && (
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Primeira sessão?</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Marca como consulta de avaliação
+                    </div>
+                  </div>
+                  <Switch checked={isFirstSession} onCheckedChange={setIsFirstSession} />
+                </div>
+              )}
+
+              {/* Repetir semanalmente - oculto em modo dupla */}
+              {!showDuplaForm && (
+                <div className="space-y-3 p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Repetir semanalmente</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Agendar para as próximas semanas
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={repeatWeekly} 
+                      onCheckedChange={(checked) => {
+                        setRepeatWeekly(checked);
+                        setConflictPreview(null);
+                        // Auto-preencher com 4 semanas a partir da data selecionada
+                        if (checked && date && !repeatUntil) {
+                          setRepeatUntil(addWeeks(date, 4));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {repeatWeekly && (
+                    <div className="grid gap-2 pt-2">
+                      <Label className="flex items-center gap-1">
+                        Repetir até quando? <span className="text-destructive">*</span>
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "justify-start text-left font-normal",
+                              !repeatUntil && "text-muted-foreground border-destructive"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {repeatUntil ? format(repeatUntil, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data final"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={repeatUntil}
+                            onSelect={setRepeatUntil}
+                            initialFocus
+                            className="pointer-events-auto"
+                            locale={ptBR}
+                            disabled={(d) => d < (date || new Date())}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      
+                      {/* Preview de quantos agendamentos serão criados */}
+                      {repeatUntil && date && (
+                        <div className="space-y-2">
+                          <div className="text-sm text-primary font-medium bg-primary/10 p-2 rounded">
+                            📅 Serão criados {differenceInWeeks(repeatUntil, date) + 1} agendamentos 
+                            (de {format(date, "dd/MM", { locale: ptBR })} até {format(repeatUntil, "dd/MM/yyyy", { locale: ptBR })})
+                          </div>
+                          
+                          {/* Botão para verificar conflitos */}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            disabled={!therapist || isValidating}
+                            onClick={async () => {
+                              if (!therapist || !date || !repeatUntil) return;
+                              
+                              setIsValidating(true);
+                              try {
+                                const result = await validateWeeklyRepetition({
+                                  date: format(date, "yyyy-MM-dd"),
+                                  repeat_until: format(repeatUntil, "yyyy-MM-dd"),
+                                  therapist,
+                                  time,
+                                  duration: parseDuration(duration),
+                                  patient_name: patient
+                                });
+                                setConflictPreview(result);
+                              } catch (error) {
+                                console.error("Erro ao validar:", error);
+                              } finally {
+                                setIsValidating(false);
+                              }
+                            }}
+                          >
+                            {isValidating ? "Verificando..." : "🔍 Verificar conflitos antes de salvar"}
+                          </Button>
+                          
+                          {/* Resultado da verificação */}
+                          {conflictPreview && (
+                            conflictPreview.conflicts.length > 0 ? (
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription>
+                                  <div className="font-medium">
+                                    {conflictPreview.conflicts.length} de {conflictPreview.totalWeeks} semanas têm conflito:
+                                  </div>
+                                  <div className="text-xs mt-1">
+                                    {conflictPreview.conflicts.join(", ")}
+                                  </div>
+                                  <div className="text-xs mt-1 opacity-80">
+                                    Essas datas serão ignoradas ao salvar.
+                                  </div>
+                                </AlertDescription>
+                              </Alert>
+                            ) : (
+                              <Alert className="border-success bg-success/10">
+                                <AlertDescription className="text-success">
+                                  ✓ Nenhum conflito encontrado! Todas as {conflictPreview.totalWeeks} semanas estão livres.
+                                </AlertDescription>
+                              </Alert>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <DialogFooter className="gap-2 flex-col sm:flex-row">
@@ -739,6 +894,20 @@ export const AppointmentModal = ({ open, onClose, appointment, prefilledDate, pr
                 Salvar Alterações
               </Button>
             </>
+          ) : showDuplaForm ? (
+            <>
+              <Button variant="outline" onClick={() => setShowDuplaForm(false)} className="w-full sm:w-auto">
+                Voltar
+              </Button>
+              <Button onClick={handleSave} className="w-full sm:w-auto">
+                <Users className="w-4 h-4 mr-2" />
+                Agendar Pilates Dupla
+              </Button>
+            </>
+          ) : isSlotWithOnePatient ? (
+            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+              Fechar
+            </Button>
           ) : (
             <>
               <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
