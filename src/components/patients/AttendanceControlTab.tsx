@@ -792,7 +792,19 @@ export function AttendanceControlTab({ patientId, patientName, healthPlan }: Att
   ).length;
 
   // Total de pagamentos vinculados
-  const paidSessionsCount = incomes.filter((i) => i.payment_status === "received").length;
+  // Sessões pagas via pacote (têm package_id preenchido)
+  const sessionsWithPackage = sessions.filter(
+    (s) => s.attendance_status === "present" && s.package_id
+  ).length;
+
+  // Sessões pagas individualmente via incomes (soma sessions_covered)
+  const sessionsFromIncomes = incomes
+    .filter((i) => i.payment_status === "received")
+    .reduce((sum, i) => sum + (i.sessions_covered || 1), 0);
+
+  // Total de sessões pagas = via pacote + via pagamento individual (evitando duplicação)
+  const paidSessionsCount = sessionsWithPackage + Math.max(0, sessionsFromIncomes - sessionsWithPackage);
+
   const totalPaid = incomes
     .filter((i) => i.payment_status === "received")
     .reduce((sum, i) => sum + Number(i.value || 0), 0);
@@ -800,9 +812,22 @@ export function AttendanceControlTab({ patientId, patientName, healthPlan }: Att
     .filter((i) => i.payment_status === "pending")
     .reduce((sum, i) => sum + Number(i.value || 0), 0);
 
-  // Sessões presentes sem pagamento (aproximado)
-  const unpaidPresentSessions = presentCount - paidSessionsCount;
-  const sessionsNeedingPayment = Math.max(0, unpaidPresentSessions);
+  // Sessões presentes sem pagamento - apenas as que não têm pacote e não têm pagamento individual
+  const unpaidPresentSessions = sessions.filter((s) => {
+    if (s.attendance_status !== "present") return false;
+    if (s.package_id) return false; // Paga via pacote
+    
+    // Verificar se tem pagamento individual vinculado
+    const hasPayment = incomes.some(
+      (income) =>
+        income.payment_status === "received" &&
+        (income.observations?.includes(`#${s.session_number}`) ||
+          income.date === s.date)
+    );
+    
+    return !hasPayment;
+  }).length;
+  const sessionsNeedingPayment = unpaidPresentSessions;
 
   // Progresso do pacote
   const packageProgress = activePackage
